@@ -1,4 +1,6 @@
 
+using static System.Net.WebRequestMethods.Http;
+
 namespace MinimalAPI
 {
     public class Program
@@ -27,7 +29,7 @@ namespace MinimalAPI
 
             app.UseAuthorization();
 
-            var summaries = new[]
+            /*var summaries = new[]
             {
                 "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
             };
@@ -45,7 +47,7 @@ namespace MinimalAPI
                 return forecast;
             })
             .WithName("GetWeatherForecast")
-            .WithOpenApi();
+            .WithOpenApi();*/
 
             app.Run();
         }
