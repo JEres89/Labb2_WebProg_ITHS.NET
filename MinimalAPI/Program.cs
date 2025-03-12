@@ -1,4 +1,5 @@
 
+using Microsoft.OpenApi.Models;
 using static System.Net.WebRequestMethods.Http;
 
 namespace MinimalAPI
@@ -14,7 +15,14 @@ namespace MinimalAPI
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(options =>
+			{
+				options.SwaggerDoc("v1", new OpenApiInfo { 
+                    Title = "Webb Labb 2 MinimalAPI", 
+                    Version = "v1",
+					Description = "A minimal API using ASP.NET 8.0",
+				});
+			});
 
             var app = builder.Build();
 

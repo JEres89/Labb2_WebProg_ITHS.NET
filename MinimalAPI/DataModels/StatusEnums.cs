@@ -8,3 +8,10 @@ public enum OrderStatus
 	Shipped,
 	Delivered
 }
+
+public enum ProductStatus
+{
+	undefined = -1,
+	Active,
+	Discontinued,
+}
