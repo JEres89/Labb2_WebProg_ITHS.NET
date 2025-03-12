@@ -1,4 +1,7 @@
 
+using Microsoft.OpenApi.Models;
+using static System.Net.WebRequestMethods.Http;
+
 namespace MinimalAPI
 {
     public class Program
@@ -12,7 +15,14 @@ namespace MinimalAPI
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(options =>
+			{
+				options.SwaggerDoc("v1", new OpenApiInfo { 
+                    Title = "Webb Labb 2 MinimalAPI", 
+                    Version = "v1",
+					Description = "A minimal API using ASP.NET 8.0",
+				});
+			});
 
             var app = builder.Build();
 
@@ -27,7 +37,7 @@ namespace MinimalAPI
 
             app.UseAuthorization();
 
-            var summaries = new[]
+            /*var summaries = new[]
             {
                 "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
             };
@@ -45,7 +55,7 @@ namespace MinimalAPI
                 return forecast;
             })
             .WithName("GetWeatherForecast")
-            .WithOpenApi();
+            .WithOpenApi();*/
 
             app.Run();
         }
