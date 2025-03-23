@@ -7,7 +7,7 @@ public class Product
 	public required string Description { get; set; }
 	public required string Category { get; set; }
 	public required decimal Price { get; set; }
-	public ProductStatus Status { get; set; }
+	public ProductStatus Status { get; set; } = 0;
 	public int Stock { get; set; }
-	public List<int>? ActiveOrders { get; set; }
+	//public List<int>? ActiveOrders { get; set; }
 }

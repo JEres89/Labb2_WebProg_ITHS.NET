@@ -1,6 +1,6 @@
 ﻿using MinimalAPI.DataModels;
 
-namespace MinimalAPI.DTOs.Requests;
+namespace MinimalAPI.DTOs.Requests.Orders;
 
 public class OrderCreateRequest
 {
@@ -8,5 +8,5 @@ public class OrderCreateRequest
 	/// <summary>
 	/// Order is created when the first item is added to cart.
 	/// </summary>
-	public required KeyValuePair<int, int> Products { get; set; }
+	public required int[][] Products { get; set; }
 }

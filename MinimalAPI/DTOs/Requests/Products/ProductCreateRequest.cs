@@ -1,4 +1,4 @@
-﻿namespace MinimalAPI.DTOs.Requests;
+﻿namespace MinimalAPI.DTOs.Requests.Products;
 
 public class ProductCreateRequest
 {
