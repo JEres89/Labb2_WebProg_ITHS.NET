@@ -1,5 +1,7 @@
 
 using Microsoft.OpenApi.Models;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using static System.Net.WebRequestMethods.Http;
 
 namespace MinimalAPI
@@ -35,9 +37,7 @@ namespace MinimalAPI
 
             app.UseHttpsRedirection();
 
-            app.UseAuthorization();
-
-            /*var summaries = new[]
+			/*var summaries = new[]
             {
                 "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
             };
@@ -57,7 +57,7 @@ namespace MinimalAPI
             .WithName("GetWeatherForecast")
             .WithOpenApi();*/
 
-            app.Run();
+			app.Run();
         }
     }
 }
