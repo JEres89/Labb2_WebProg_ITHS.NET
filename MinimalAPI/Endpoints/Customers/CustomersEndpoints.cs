@@ -1,103 +1,168 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
-using MinimalAPI.DataModels;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using MinimalAPI.Auth;
 using MinimalAPI.DTOs.Requests.Customers;
 using MinimalAPI.DTOs.Responses.Customers;
 using MinimalAPI.DTOs.Responses.Orders;
 using MinimalAPI.Mappers;
 using MinimalAPI.Services;
-using System.Linq.Expressions;
+using static MinimalAPI.Services.ValidationResultCode;
 
 namespace MinimalAPI.Endpoints.Customers;
 
 public static class CustomersEndpoints
 {
-	public static async Task<CustomersResponse> GetCustomers(ICustomersRepository repository) 
-		=> (await repository.GetCustomersAsync()).ToCustomersResponse();
+	[HttpGet(Name = "GetCustomers")]
+	[Authorize(Roles = "Admin")]
+	public static async Task<Results<Ok<CustomersResponse>,UnauthorizedHttpResult, NoContent,BadRequest<string?>,StatusCodeHttpResult>> GetCustomers(ICustomersActionValidationService validation, WebUser? user)
+	{
+		var result = await validation.GetCustomersAsync(user);
+		switch(result.ResultCode)
+		{
+			case Success:
+				if(result.ResultValue == null)
+				{
+					return TypedResults.NoContent();
+				}
+				return TypedResults.Ok(result.ResultValue!.ToCustomersResponse());
 
-	public static async Task<CustomerResponse> GetCustomer(ICustomersRepository repository, [FromRoute] int id) 
-		=> (await repository.GetCustomerAsync(id)).ToCustomerResponse();
+			case Unauthorized:
+				return TypedResults.Unauthorized();
 
-	public static async Task<CustomerResponse> CreateCustomer(IUnitOfWork worker, [FromBody] CustomerCreateRequest request)
+			case Failed:
+				return TypedResults.BadRequest<string?>(result.ErrorMessage);
+
+			default:
+				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+		}
+	}
+
+	[HttpPost(Name = "CreateCustomer")]
+	[Authorize(Roles = "Admin")]
+	public static async Task<Results<CreatedAtRoute<CustomerResponse>, UnauthorizedHttpResult, BadRequest<string?>, StatusCodeHttpResult>> CreateCustomer(ICustomersActionValidationService validation, WebUser? user, [FromBody] CustomerCreateRequest request)
 	{
 		var customer = request.ToCustomer();
-		var createdCustomer = await worker.Customers.CreateCustomerAsync(customer);
-		await worker.SaveChangesAsync();
-
-		if(customer.Id == 0)
+		var result = await validation.CreateCustomerAsync(user, customer);
+		customer = result.ResultValue;
+		switch(result.ResultCode)
 		{
-			throw new Exception("Failed to create customer");
-		}
+			case Success:
+				return TypedResults.CreatedAtRoute(
+					value: customer!.ToCustomerResponse(),
+					routeName: "GetCustomer",
+					routeValues: new { id = customer!.Id }
+					);
 
-		return createdCustomer.ToCustomerResponse();
+			case Unauthorized:
+				return TypedResults.Unauthorized();
+
+			case Failed:
+				return TypedResults.BadRequest<string?>(result.ErrorMessage);
+
+			default:
+				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+		}
 	}
 
-	public static async Task<CustomerResponse> UpdateCustomer(IUnitOfWork worker, [FromRoute] int id, [FromBody] CustomerUpdateRequest request)
+	[HttpGet("{id}", Name = "GetCustomer")]
+	[Authorize]
+	public static async Task<Results<Ok<CustomerResponse>,UnauthorizedHttpResult, NotFound,BadRequest<string?>,StatusCodeHttpResult>> GetCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
 	{
-		var repo = worker.Customers;
-		var customer = await repo.GetCustomerAsync(id);
-		if(customer == null)
+		var result = await validation.GetCustomerAsync(user, id);
+		switch(result.ResultCode)
 		{
-			throw new Exception("Customer not found");
-		}
+			case Success:
+				return TypedResults.Ok(result.ResultValue!.ToCustomerResponse());
 
-		foreach(var prop in request)
-		{
-			switch(prop.Key.ToLower())
-			{
-				case "firstname":
-					customer.FirstName = prop.Value;
-					break;
-				case "lastname":
-					customer.LastName = prop.Value;
-					break;
-				case "email":
-					customer.Email = prop.Value;
-					break;
-				case "phone":
-					customer.Phone = prop.Value;
-					break;
-				case "address":
-					customer.Address = prop.Value;
-					break;
-				default:
-					break;
-			}
-		}
+			case Unauthorized:
+				return TypedResults.Unauthorized();
 
-		var updatedCustomer = await worker.Customers.UpdateCustomerAsync(id, customer);
-		await worker.SaveChangesAsync();
-		if(updatedCustomer == null)
-		{
-			throw new Exception("Failed to update customer");
+			case ValidationResultCode.NotFound:
+				return TypedResults.NotFound();
+
+			//case Failed:
+			//	return TypedResults.BadRequest<string?>(result.ErrorMessage);
+
+			default:
+				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
 		}
-		return updatedCustomer.ToCustomerResponse();
 	}
 
-	public static async Task<bool> DeleteCustomer(IUnitOfWork worker, [FromRoute] int id)
+	[HttpPatch("{id}", Name = "UpdateCustomer")]
+	[Authorize]
+	public static async Task<Results<Ok<CustomerResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> UpdateCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] CustomerUpdateRequest request)
 	{
-		var repo = worker.Customers;
-		var success = await repo.DeleteCustomerAsync(id);
-		var count = await worker.SaveChangesAsync();
-		return success && count > 0;
+		var result = await validation.UpdateCustomerAsync(user, id, request);
+
+		switch(result.ResultCode)
+		{
+			case Success:
+				return TypedResults.Ok(result.ResultValue!.ToCustomerResponse());
+
+			case Unauthorized:
+				return TypedResults.Unauthorized();
+
+			case ValidationResultCode.NotFound:
+				return TypedResults.NotFound();
+
+			case Failed:
+				return TypedResults.BadRequest<string?>(result.ErrorMessage);
+
+			default:
+				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+		}
 	}
 
-	public static async Task<OrdersResponse> GetOrders(IUnitOfWork worker, [FromRoute] int id)
+	[HttpDelete("{id}", Name = "DeleteCustomer")]
+	[Authorize]
+	public static async Task<Results<NoContent, UnauthorizedHttpResult, NotFound, BadRequest, StatusCodeHttpResult>> DeleteCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
+	{		
+		switch(await validation.DeleteCustomerAsync(user, id))
+		{
+			case Success:
+				return TypedResults.NoContent();
+
+			case Unauthorized:
+				return TypedResults.Unauthorized();
+
+			case ValidationResultCode.NotFound:
+				return TypedResults.NotFound();
+
+			case Failed:
+				return TypedResults.BadRequest();
+
+			default:
+				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+		}
+	}
+
+	[HttpGet("{id}/orders", Name = "GetCustomerOrders")]
+	[Authorize]
+	public static async Task<Results<NoContent, Ok<OrdersResponse>, UnauthorizedHttpResult, NotFound, /*BadRequest<string?>,*/ StatusCodeHttpResult>> GetOrders(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
 	{
-		var customer = await worker.Customers.GetCustomerAsync(id);
-		if(customer == null)
+		var result = await validation.GetOrdersAsync(user, id);
+
+		switch(result.ResultCode)
 		{
-			throw new Exception("Customer not found");
+			case Success:
+				if(result.ResultValue == null)
+				{
+					return TypedResults.NoContent();
+				}
+				return TypedResults.Ok(result.ResultValue.ToOrdersResponse());
+
+			case Unauthorized:
+				return TypedResults.Unauthorized();
+
+			case ValidationResultCode.NotFound:
+				return TypedResults.NotFound();
+
+			//case Failed:
+			//	return TypedResults.BadRequest<string?>(result.ErrorMessage);
+
+			default:
+				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
 		}
-		var orders = customer.Orders;
-		if(orders == null)
-		{
-			throw new Exception("Orders not found");
-		}
-		return new OrdersResponse
-		{
-			Orders = orders.Select(o => o.ToOrderResponse())
-		};
 	}
 }
