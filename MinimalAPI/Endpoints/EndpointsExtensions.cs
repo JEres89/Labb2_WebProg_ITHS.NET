@@ -7,32 +7,26 @@ public static class EndpointsExtensions
 {
 	public static IEndpointRouteBuilder MapApiEndpoints(this IEndpointRouteBuilder app)
 	{
-		
+		app.MapGroup("/api/customers").RequireAuthorization().MapCustomerEndpoints();
 
 		return app;
 	}
 
-	public static IEndpointRouteBuilder MapCustomerEndpoints(this IEndpointRouteBuilder app)
+	public static IEndpointRouteBuilder MapCustomerEndpoints(this RouteGroupBuilder app)
 	{
-		app.MapGet("/api/customers", CustomersEndpoints.GetCustomers);//.RequireAuthorization("Administrator");
+		app.MapGet("/", CustomersEndpoints.GetCustomers).RequireAuthorization("Administrator");
 
-		app.MapGet("/api/customers/{id}", CustomersEndpoints.GetCustomer);//.RequireAuthorization("Administrator");
+		app.MapGet("/{id}", CustomersEndpoints.GetCustomer);
 
-		app.MapPost("/api/customers", async (CustomerResponse customerResponse) =>
-		{
-			return Results.Ok(customerResponse);
-		}).RequireAuthorization("Administrator");
+		app.MapPost("/", CustomersEndpoints.CreateCustomer);
 
-		app.MapPut("/api/customers/{id}", async (int id, CustomerResponse customerResponse) =>
-		{
-			return Results.Ok(customerResponse);
-		}).RequireAuthorization("Administrator");
+		app.MapPatch("/{id}", CustomersEndpoints.UpdateCustomer);
 
-		app.MapDelete("/api/customers/{id}", async (int id) =>
-		{
-			return Results.Ok(id);
-		}).RequireAuthorization("Administrator");
+		app.MapDelete("/{id}", CustomersEndpoints.DeleteCustomer).RequireAuthorization("Administrator");
+
+		app.MapGet("/{id}/orders", CustomersEndpoints.GetOrders);
 
 		return app;
 	}
+
 }

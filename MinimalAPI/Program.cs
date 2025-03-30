@@ -1,5 +1,6 @@
 //using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using MinimalAPI.Endpoints;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using static System.Net.WebRequestMethods.Http;
@@ -25,12 +26,13 @@ namespace MinimalAPI
 					Description = "A minimal API using ASP.NET 8.0",
 				});
 			});
-            //builder.Services.AddDb
+            builder.Services.AddSc
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            app.MapApiEndpoints();
+			// Configure the HTTP request pipeline.
+			if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
