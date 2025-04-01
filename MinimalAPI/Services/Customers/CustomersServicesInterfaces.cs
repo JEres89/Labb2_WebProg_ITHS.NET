@@ -2,7 +2,7 @@
 using MinimalAPI.DataModels;
 using System.Diagnostics.CodeAnalysis;
 
-namespace MinimalAPI.Services;
+namespace MinimalAPI.Services.Customers;
 
 public interface ICustomersRepository
 {

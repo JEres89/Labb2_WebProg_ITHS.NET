@@ -49,28 +49,28 @@ public static class ProductMapping
 		};
 	}
 
-	public static Product ToProduct(this ProductReplaceRequest request, int id)
-	{
-		return new Product
-		{
-			Id = id,
-			Name = request.Name,
-			Description = request.Description,
-			Category = request.Category,
-			Price = request.Price,
-			Status = request.Status,
-			Stock = request.Stock
-		};
-	}
+	//public static Product ToProduct(this ProductReplaceRequest request, int id)
+	//{
+	//	return new Product
+	//	{
+	//		Id = id,
+	//		Name = request.Name,
+	//		Description = request.Description,
+	//		Category = request.Category,
+	//		Price = request.Price,
+	//		Status = request.Status,
+	//		Stock = request.Stock
+	//	};
+	//}
 	
-	public static ProductOrderResponse ToProductOrderResponse(this OrderProduct request, OrderResponse order)
+	public static ProductOrderResponse ToProductOrderResponse(this OrderProduct request)
 	{
 		return new ProductOrderResponse
 		{
-			Path = OrderMapping.ORDERS_PATH+order.Id,
+			Path = OrderMapping.ORDERS_PATH+request.OrderId,
 			Count = request.Count,
 			Price = request.Price,
-			Order = order
+			OrderId = request.OrderId
 		};
 	}
 
@@ -145,7 +145,7 @@ public static class OrderMapping
 		};
 	}
 
-	public static OrderProductResponse[] ToOrderProductsResponse(this Order order)
+	public static IEnumerable<OrderProductResponse> ToOrderProductsResponse(this Order order)
 	{
 		return (from product in order.Products
 				select new OrderProductResponse
@@ -154,7 +154,7 @@ public static class OrderMapping
 					Count = product.Count,
 					Price = product.Price,
 					Product = product.Product!.ToProductResponse()
-				}).ToArray();
+				});
 	}
 
 	public static OrderProductsChangeResponse ToOrderProductsChangeResponse(this Order order/*, OrderProductsChangeRequest request*/)

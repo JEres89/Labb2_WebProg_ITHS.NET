@@ -1,4 +1,8 @@
-﻿namespace MinimalAPI.Services;
+﻿using MinimalAPI.Services.Customers;
+using MinimalAPI.Services.Orders;
+using MinimalAPI.Services.Products;
+
+namespace MinimalAPI.Services;
 
 public interface IUnitOfWork : IDisposable
 {

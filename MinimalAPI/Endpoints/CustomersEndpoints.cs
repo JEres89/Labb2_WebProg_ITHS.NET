@@ -7,15 +7,16 @@ using MinimalAPI.DTOs.Responses.Customers;
 using MinimalAPI.DTOs.Responses.Orders;
 using MinimalAPI.Mappers;
 using MinimalAPI.Services;
+using MinimalAPI.Services.Customers;
 using static MinimalAPI.Services.ValidationResultCode;
 
-namespace MinimalAPI.Endpoints.Customers;
+namespace MinimalAPI.Endpoints;
 
 public static class CustomersEndpoints
 {
 	[HttpGet(Name = "GetCustomers")]
 	[Authorize(Roles = "Admin")]
-	public static async Task<Results<Ok<CustomersResponse>,UnauthorizedHttpResult, NoContent,BadRequest<string?>,StatusCodeHttpResult>> GetCustomers(ICustomersActionValidationService validation, WebUser? user)
+	public static async Task<Results<Ok<CustomersResponse>, UnauthorizedHttpResult, NoContent, BadRequest<string?>, StatusCodeHttpResult>> GetCustomers(ICustomersActionValidationService validation, WebUser? user)
 	{
 		var result = await validation.GetCustomersAsync(user);
 		switch(result.ResultCode)
@@ -67,7 +68,7 @@ public static class CustomersEndpoints
 
 	[HttpGet("{id}", Name = "GetCustomer")]
 	[Authorize]
-	public static async Task<Results<Ok<CustomerResponse>,UnauthorizedHttpResult, NotFound,BadRequest<string?>,StatusCodeHttpResult>> GetCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async Task<Results<Ok<CustomerResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> GetCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
 	{
 		var result = await validation.GetCustomerAsync(user, id);
 		switch(result.ResultCode)
@@ -117,7 +118,7 @@ public static class CustomersEndpoints
 	[HttpDelete("{id}", Name = "DeleteCustomer")]
 	[Authorize]
 	public static async Task<Results<NoContent, UnauthorizedHttpResult, NotFound, BadRequest, StatusCodeHttpResult>> DeleteCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
-	{		
+	{
 		switch(await validation.DeleteCustomerAsync(user, id))
 		{
 			case Success:

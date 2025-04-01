@@ -1,10 +1,8 @@
 ﻿using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
-//using System.Diagnostics.CodeAnalysis;
-//using static MinimalAPI.Services.ICustomersActionValidationService;
 using static MinimalAPI.Services.ValidationResultCode;
 
-namespace MinimalAPI.Services;
+namespace MinimalAPI.Services.Customers;
 
 public class CustomersActionValidationService : ICustomersActionValidationService
 {
@@ -27,16 +25,12 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 			return new ValidationResult<IEnumerable<Customer>>
 			{
 				ResultCode = Failed,
-				ResultValue = null
+				ErrorMessage = "Could not retreive Customers."
 			};
 		}
 		else if(customers.Count() == 0)
 		{
-			return new ValidationResult<IEnumerable<Customer>>
-			{
-				ResultCode = Success,
-				ResultValue = null
-			};
+			return new ValidationResult<IEnumerable<Customer>> { ResultCode = Success };
 		}
 		else
 		{
@@ -65,12 +59,12 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 
 	public async Task<ValidationResult<Customer>> GetCustomerAsync(WebUser? user, int id)
 	{
-		if(user == null || (user.CustomerId != id && user.Role != Role.Admin))
+		if(user == null || user.CustomerId != id && user.Role != Role.Admin)
 			return new ValidationResult<Customer> { ResultCode = Unauthorized };
 
 		var repo = _worker.Customers;
 		var customer = await repo.GetCustomerAsync(id);
-		
+
 		return new ValidationResult<Customer>
 		{
 			ResultCode = customer == null ? NotFound : Success,
@@ -81,7 +75,7 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 
 	public async Task<ValidationResult<Customer>> UpdateCustomerAsync(WebUser? user, int id, Dictionary<string, string> updates)
 	{
-		if(user == null || (user.CustomerId != id && user.Role != Role.Admin))
+		if(user == null || user.CustomerId != id && user.Role != Role.Admin)
 			return new ValidationResult<Customer> { ResultCode = Unauthorized };
 
 		Customer customer;
@@ -128,19 +122,19 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 
 	public async Task<ValidationResultCode> DeleteCustomerAsync(WebUser? user, int id)
 	{
-		if(user == null || (user.CustomerId != id && user.Role != Role.Admin))
+		if(user == null || user.CustomerId != id && user.Role != Role.Admin)
 			return Unauthorized;
 
 		var repo = _worker.Customers;
 		var success = await repo.DeleteCustomerAsync(id);
 		var count = await _worker.SaveChangesAsync();
 
-		return (success && count > 0) ? Success : Failed;
+		return success && count > 0 ? Success : Failed;
 	}
 
 	public async Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync(WebUser? user, int id)
 	{
-		if(user == null || (user.CustomerId != id && user.Role != Role.Admin))
+		if(user == null || user.CustomerId != id && user.Role != Role.Admin)
 			return new ValidationResult<IEnumerable<Order>> { ResultCode = Unauthorized };
 
 		var repo = _worker.Orders;

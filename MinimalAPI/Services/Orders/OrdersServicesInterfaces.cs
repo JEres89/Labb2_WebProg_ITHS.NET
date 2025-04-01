@@ -2,17 +2,23 @@
 using MinimalAPI.DataModels;
 using MinimalAPI.DTOs.Requests.Orders;
 
-namespace MinimalAPI.Services;
+namespace MinimalAPI.Services.Orders;
 
 public interface IOrdersRepository
 {
 	Task<IEnumerable<Order>> GetOrdersAsync();
 	Task<Order> CreateOrderAsync(Order order);
 	Task<Order> GetOrderAsync(int id);
-	Task<Order> UpdateOrderAsync(int id, Order order);
+	Task<Order> UpdateOrderAsync(int id, OrderStatus status);
 	Task<bool> DeleteOrderAsync(int id);
 	Task<IEnumerable<Order>> FindOrdersAsync(Predicate<Order> orderMatch);
 	Task<IEnumerable<int[]>> EditProductsAsync(WebUser? user, int id, OrderProductsChangeRequest changeProducts);
+	/// <summary>
+	/// Applies lazy loading on <see cref="OrderProduct.Product"/>, meaning it will be null if not loaded.
+	/// </summary>
+	/// <param name="orderMatch">Pass in for filtering results, if null returns all orders with the product.</param>
+	/// <returns></returns>
+	Task<IEnumerable<OrderProduct>> FindOrdersForProductAsync(Predicate<OrderProduct>? orderMatch, int productId);
 }
 
 public interface IOrdersActionValidationService

@@ -1,7 +1,7 @@
 ﻿using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
 
-namespace MinimalAPI.Services;
+namespace MinimalAPI.Services.Products;
 
 public interface IProductsRepository
 {
@@ -17,8 +17,7 @@ public interface IProductsActionValidationService
 	Task<ValidationResult<IEnumerable<Product>>> GetProductsAsync();
 	Task<ValidationResult<Product>> GetProductAsync(int id);
 	Task<ValidationResult<Product>> CreateProductAsync(WebUser? user, Product product);
-	Task<ValidationResult<Product>> UpdateProductAsync(WebUser? user, int id, Product product);
-	Task<ValidationResult<Product>> PatchProductAsync(WebUser? user, int id, Dictionary<string, string> updates);
+	Task<ValidationResult<Product>> UpdateProductAsync(WebUser? user, int id, Dictionary<string, string> product);
 	Task<ValidationResultCode> DeleteProductAsync(WebUser? user, int id);
-	Task<ValidationResult<IEnumerable<Order>>> GetProductOrdersAsync(WebUser? user, int id);
+	Task<ValidationResult<IEnumerable<OrderProduct>>> GetProductOrdersAsync(WebUser? user, int id);
 }
