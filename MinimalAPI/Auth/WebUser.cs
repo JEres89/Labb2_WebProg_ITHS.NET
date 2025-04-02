@@ -1,4 +1,6 @@
-﻿namespace MinimalAPI.Auth;
+﻿using MinimalAPI.DataModels;
+
+namespace MinimalAPI.Auth;
 
 public class WebUser
 {
@@ -6,6 +8,7 @@ public class WebUser
 
 	public Role Role { get; set; }
 	public int CustomerId { get; set; } = 0;
+	public Customer? Customer { get; set; }
 }
 
 public enum Role

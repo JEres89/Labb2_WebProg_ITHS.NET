@@ -7,8 +7,8 @@ public static class EndpointsExtensions
 	public static IEndpointRouteBuilder MapApiEndpoints(this IEndpointRouteBuilder app)
 	{
 		app.MapGroup("/api/customers").RequireAuthorization().MapCustomerEndpoints();
-		app.MapGroup("/api/products").RequireAuthorization().MapProductEndpoints();
-
+		app.MapGroup("/api/products").MapProductEndpoints();
+		app.MapGroup("/api/orders").RequireAuthorization().MapOrderEndpoints();
 		return app;
 	}
 
@@ -39,9 +39,23 @@ public static class EndpointsExtensions
 		app.MapPatch("/{id}", ProductsEndpoints.UpdateProduct).RequireAuthorization("Administrator");
 
 		app.MapDelete("/{id}", ProductsEndpoints.DeleteProduct).RequireAuthorization("Administrator");
+		app.MapGet("/{id}/orders", ProductsEndpoints.GetOrders).RequireAuthorization("Administrator");
 
 		return app;
 	}
+	public static IEndpointRouteBuilder MapOrderEndpoints(this RouteGroupBuilder app)
+	{
+		app.MapGet("/", OrdersEndpoints.GetOrders).RequireAuthorization("Administrator");
 
+		app.MapGet("/{id}", OrdersEndpoints.GetOrder);
+
+		app.MapPost("/", OrdersEndpoints.CreateOrder);
+
+		app.MapPatch("/{id}", OrdersEndpoints.UpdateOrder);
+
+		app.MapDelete("/{id}", OrdersEndpoints.DeleteOrder);
+
+		return app;
+	}
 
 }

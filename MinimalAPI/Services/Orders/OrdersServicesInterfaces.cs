@@ -8,11 +8,16 @@ public interface IOrdersRepository
 {
 	Task<IEnumerable<Order>> GetOrdersAsync();
 	Task<Order> CreateOrderAsync(Order order);
-	Task<Order> GetOrderAsync(int id);
+	/// <summary>
+	/// Applies lazy loading on <see cref="OrderProduct.Product"/> in <see cref="Order.Products"/> if <paramref name="withProducts"/> is <see langword="false"/>, meaning they will be null if not loaded.
+	/// </summary>
+	Task<Order> GetOrderAsync(int id, bool withProducts = false);
 	Task<Order> UpdateOrderAsync(int id, OrderStatus status);
 	Task<bool> DeleteOrderAsync(int id);
 	Task<IEnumerable<Order>> FindOrdersAsync(Predicate<Order> orderMatch);
-	Task<IEnumerable<int[]>> EditProductsAsync(WebUser? user, int id, OrderProductsChangeRequest changeProducts);
+	Task<bool> EditProductAsync(int id, int productId, int amount);
+	Task<IEnumerable<int[]>> EditProductsAsync(int id, IEnumerable<int[]> changeProducts);
+	Task<IEnumerable<int[]>> SetProductsAsync(int id, IEnumerable<int[]> newProducts);
 	/// <summary>
 	/// Applies lazy loading on <see cref="OrderProduct.Product"/>, meaning it will be null if not loaded.
 	/// </summary>
@@ -28,9 +33,7 @@ public interface IOrdersActionValidationService
 	Task<ValidationResult<Order>> GetOrderAsync(WebUser? user, int id);
 	Task<ValidationResult<Order>> UpdateOrderAsync(WebUser? user, int id, OrderStatus status);
 	Task<ValidationResultCode> DeleteOrderAsync(WebUser? user, int id);
-	Task<ValidationResult<IEnumerable<Product>>> GetProductsAsync(WebUser? user, int id);
-	Task<ValidationResult<IEnumerable<int[]>>> AddProductsAsync(WebUser? user, int id, IEnumerable<int[]> addProducts);
+	Task<ValidationResult<IEnumerable<OrderProduct>>> GetProductsAsync(WebUser? user, int id);
+	Task<ValidationResult<IEnumerable<int[]>>> SetProductsAsync(WebUser? user, int id, IEnumerable<int[]> setProducts);
 	Task<ValidationResult<IEnumerable<int[]>>> ReplaceProductsAsync(WebUser? user, int id, IEnumerable<int[]> newProducts);
-	Task<ValidationResult<IEnumerable<int[]>>> EditProductsAsync(WebUser? user, int id, IEnumerable<int[]> changeProducts);
-	Task<ValidationResult<IEnumerable<int[]>>> RemoveProductAsync(WebUser? user, int id, int pid);
 }

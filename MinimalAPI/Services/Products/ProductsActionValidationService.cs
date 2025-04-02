@@ -49,7 +49,7 @@ public class ProductsActionValidationService : IProductsActionValidationService
 
 		return new ValidationResult<Product>
 		{
-			ResultCode = newProduct == null ? Failed : Success,
+			ResultCode = changes > 0 ? Success : Failed,
 			ResultValue = newProduct
 		};
 	}
@@ -124,9 +124,9 @@ public class ProductsActionValidationService : IProductsActionValidationService
 
 		var repo = _worker.Products;
 		var success = await repo.DeleteProductAsync(id);
-		var count = await _worker.SaveChangesAsync();
+		var changes = await _worker.SaveChangesAsync();
 
-		return success && count > 0 ? Success : Failed;
+		return changes > 0 ? Success : Failed;
 	}
 
 	public async Task<ValidationResult<IEnumerable<OrderProduct>>> GetProductOrdersAsync(WebUser? user, int id)
