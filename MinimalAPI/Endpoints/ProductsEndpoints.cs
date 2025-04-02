@@ -63,7 +63,6 @@ public static class ProductsEndpoints
 	}
 
 	[HttpGet("{id}", Name = "GetProduct")]
-	[Authorize(Roles = "Admin")]
 	public static async Task<Results<Ok<ProductResponse>, NotFound, BadRequest<string?>, StatusCodeHttpResult>> GetProduct(IProductsActionValidationService validation, [FromRoute] int id)
 	{
 		var result = await validation.GetProductAsync(id);

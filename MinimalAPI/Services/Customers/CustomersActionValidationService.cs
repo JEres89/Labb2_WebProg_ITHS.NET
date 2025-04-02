@@ -52,7 +52,7 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 
 		return new ValidationResult<Customer>
 		{
-			ResultCode = newCustomer == null ? Failed : Success,
+			ResultCode = changes > 0 ? Success : Failed,
 			ResultValue = newCustomer
 		};
 	}
@@ -127,9 +127,9 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 
 		var repo = _worker.Customers;
 		var success = await repo.DeleteCustomerAsync(id);
-		var count = await _worker.SaveChangesAsync();
+		var changes = await _worker.SaveChangesAsync();
 
-		return success && count > 0 ? Success : Failed;
+		return changes > 0 ? Success : Failed;
 	}
 
 	public async Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync(WebUser? user, int id)

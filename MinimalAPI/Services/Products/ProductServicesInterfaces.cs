@@ -15,8 +15,8 @@ public interface IProductsRepository
 public interface IProductsActionValidationService
 {
 	Task<ValidationResult<IEnumerable<Product>>> GetProductsAsync();
-	Task<ValidationResult<Product>> GetProductAsync(int id);
 	Task<ValidationResult<Product>> CreateProductAsync(WebUser? user, Product product);
+	Task<ValidationResult<Product>> GetProductAsync(int id);
 	Task<ValidationResult<Product>> UpdateProductAsync(WebUser? user, int id, Dictionary<string, string> product);
 	Task<ValidationResultCode> DeleteProductAsync(WebUser? user, int id);
 	Task<ValidationResult<IEnumerable<OrderProduct>>> GetProductOrdersAsync(WebUser? user, int id);

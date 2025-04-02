@@ -17,8 +17,8 @@ public interface ICustomersRepository
 public interface ICustomersActionValidationService
 {
 	Task<ValidationResult<IEnumerable<Customer>>> GetCustomersAsync(WebUser? user);
-	Task<ValidationResult<Customer>> GetCustomerAsync(WebUser? user, int id);
 	Task<ValidationResult<Customer>> CreateCustomerAsync(WebUser? user, Customer customer);
+	Task<ValidationResult<Customer>> GetCustomerAsync(WebUser? user, int id);
 	Task<ValidationResult<Customer>> UpdateCustomerAsync(WebUser? user, int id, Dictionary<string, string> updates);
 	Task<ValidationResultCode> DeleteCustomerAsync(WebUser? user, int id);
 	Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync(WebUser? user, int id);
