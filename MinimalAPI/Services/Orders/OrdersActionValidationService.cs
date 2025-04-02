@@ -61,8 +61,10 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 
 	public async Task<ValidationResult<Order>> GetOrderAsync(WebUser? user, int id)
 	{
-		if(user == null)
-			return new ValidationResult<Order> { ResultCode = Unauthorized };
+		return await GetOrderAsync(user, id, false);
+
+		//if(user == null)
+		//	return new ValidationResult<Order> { ResultCode = Unauthorized };
 		//else if(user.Role != Role.Admin)
 		//{
 		//	if(user.Customer == null)
@@ -85,15 +87,43 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		//	}
 		//}
 
-		var repo = _worker.Orders;
-		var order = await repo.GetOrderAsync(id);
+		//var repo = _worker.Orders;
+		//var order = await repo.GetOrderAsync(id);
 
-		if(user.Role != Role.Admin || user.CustomerId != order.CustomerId)
+		//if(user.Role != Role.Admin || user.CustomerId != order.CustomerId)
+		//	return new ValidationResult<Order> { ResultCode = Unauthorized };
+
+		//return new ValidationResult<Order>
+		//{
+		//	ResultCode = order == null ? NotFound : Success,
+		//	ResultValue = order
+		//};
+	}
+	private async Task<ValidationResult<Order>> GetOrderAsync(WebUser? user, int id, bool withProducts)
+	{
+		if(user == null)
 			return new ValidationResult<Order> { ResultCode = Unauthorized };
+
+		var repo = _worker.Orders;
+		Order? order;
+		if(user.Role == Role.Admin)
+			order = await repo.GetOrderAsync(id, withProducts);
+		else
+		{
+			order = await repo.GetOrderAsync(id);
+			if(order != null && order.CustomerId == user.CustomerId)
+				if(withProducts)
+					order = await repo.GetOrderAsync(id, true);
+			else
+				return new ValidationResult<Order> { ResultCode = Unauthorized };
+		}
+
+		if(order == null)
+			return new ValidationResult<Order> { ResultCode = NotFound };
 
 		return new ValidationResult<Order>
 		{
-			ResultCode = order == null ? NotFound : Success,
+			ResultCode = Success,
 			ResultValue = order
 		};
 	}
@@ -149,38 +179,15 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		return changes > 0 ? Success : Failed;
 	}
 
-	public async Task<ValidationResult<IEnumerable<OrderProduct>>> GetProductsAsync(WebUser? user, int id)
+	public async Task<ValidationResult<Order>> GetProductsAsync(WebUser? user, int id)
 	{
-		if(user == null)
-			return new ValidationResult<IEnumerable<OrderProduct>> { ResultCode = Unauthorized };
-
-		var repo = _worker.Orders;
-		Order? order;
-		if(user.Role == Role.Admin)
-			order = await repo.GetOrderAsync(id, true);
-		else
-		{
-			order = await repo.GetOrderAsync(id);
-			if(order != null && order.CustomerId == user.CustomerId)
-				order = await repo.GetOrderAsync(id, true);
-			else
-				return new ValidationResult<IEnumerable<OrderProduct>> { ResultCode = Unauthorized };
-		}
-
-		if(order == null)
-			return new ValidationResult<IEnumerable<OrderProduct>> { ResultCode = NotFound };
-
-		return new ValidationResult<IEnumerable<OrderProduct>>
-		{
-			ResultCode = Success,
-			ResultValue = order.Products
-		};
+		return await GetOrderAsync(user, id, true);
 	}
 
-	public async Task<ValidationResult<IEnumerable<int[]>>> SetProductsAsync(WebUser? user, int id, IEnumerable<int[]> setProducts)
+	public async Task<ValidationResult<Order>> UpdateProductsAsync(WebUser? user, int id, IEnumerable<int[]> setProducts)
 	{
 		if(user == null)
-			return new ValidationResult<IEnumerable<int[]>> { ResultCode = Unauthorized };
+			return new ValidationResult<Order> { ResultCode = Unauthorized };
 
 		var repo = _worker.Orders;
 		Order? order;
@@ -192,16 +199,16 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 			if(order != null && order.CustomerId == user.CustomerId)
 				order = await repo.GetOrderAsync(id, true);
 			else
-				return new ValidationResult<IEnumerable<int[]>> { ResultCode = Unauthorized };
+				return new ValidationResult<Order> { ResultCode = Unauthorized };
 		}
 
 		if(order == null)
-			return new ValidationResult<IEnumerable<int[]>> { ResultCode = NotFound };
+			return new ValidationResult<Order> { ResultCode = NotFound };
 
-		var result = await repo.EditProductsAsync(id, setProducts);
+		var result = await repo.UpdateProductsAsync(id, setProducts);
 		var changes = await _worker.SaveChangesAsync();
 
-		return new ValidationResult<IEnumerable<int[]>>
+		return new ValidationResult<Order>
 		{
 			ResultCode = changes > 0 ? Success : Failed,
 			ResultValue = result,
@@ -209,10 +216,10 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		};
 	}
 
-	public async Task<ValidationResult<IEnumerable<int[]>>> ReplaceProductsAsync(WebUser? user, int id, IEnumerable<int[]> setProducts)
+	public async Task<ValidationResult<Order>> SetProductsAsync(WebUser? user, int id, IEnumerable<int[]> setProducts)
 	{
 		if(user == null)
-			return new ValidationResult<IEnumerable<int[]>> { ResultCode = Unauthorized };
+			return new ValidationResult<Order> { ResultCode = Unauthorized };
 
 		var repo = _worker.Orders;
 		Order? order;
@@ -224,13 +231,13 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 			if(order != null && order.CustomerId == user.CustomerId)
 				order = await repo.GetOrderAsync(id, true);
 			else
-				return new ValidationResult<IEnumerable<int[]>> { ResultCode = Unauthorized };
+				return new ValidationResult<Order> { ResultCode = Unauthorized };
 		}
 
 		var result = await repo.SetProductsAsync(id, setProducts);
 		var changes = await _worker.SaveChangesAsync();
 
-		return new ValidationResult<IEnumerable<int[]>>
+		return new ValidationResult<Order>
 		{
 			ResultCode = changes > 0 ? Success : Failed,
 			ResultValue = result,

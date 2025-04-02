@@ -138,7 +138,7 @@ public static class ProductsEndpoints
 			case Success:
 				return result.ResultValue == null 
 					? TypedResults.NoContent() 
-					: TypedResults.Ok(result.ResultValue.Select(ProductMapping.ToProductOrderResponse));
+					: TypedResults.Ok(result.ResultValue.ToProductOrdersResponse());
 
 			case Unauthorized:
 				return TypedResults.Unauthorized();

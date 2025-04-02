@@ -63,15 +63,16 @@ public static class ProductMapping
 	//	};
 	//}
 	
-	public static ProductOrderResponse ToProductOrderResponse(this OrderProduct request)
+	public static IEnumerable<ProductOrderResponse> ToProductOrdersResponse(this IEnumerable<OrderProduct> request)
 	{
-		return new ProductOrderResponse
-		{
-			Path = OrderMapping.ORDERS_PATH+request.OrderId,
-			Count = request.Count,
-			Price = request.Price,
-			OrderId = request.OrderId
-		};
+		return (from productOrder in request
+				select new ProductOrderResponse
+				{
+					Path = OrderMapping.ORDERS_PATH+productOrder.OrderId,
+					Count = productOrder.Count,
+					Price = productOrder.Price,
+					OrderId = productOrder.OrderId
+				});
 	}
 
 }

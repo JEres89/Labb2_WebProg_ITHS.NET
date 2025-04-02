@@ -26,7 +26,7 @@ namespace MinimalAPI
 					Description = "A minimal API using ASP.NET 8.0",
 				});
 			});
-            builder.Services.AddSc
+            //builder.Services.AddSc
 
             var app = builder.Build();
 

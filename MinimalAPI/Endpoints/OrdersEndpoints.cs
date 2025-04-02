@@ -139,7 +139,7 @@ public static class OrdersEndpoints
 
 	[HttpGet("{id}/products", Name = "GetOrderProducts")]
 	[Authorize]
-	public static async Task<Results<NoContent, Ok<IEnumerable<OrderProduct>>, UnauthorizedHttpResult, NotFound, StatusCodeHttpResult>> GetProducts(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async Task<Results<NoContent, Ok<IEnumerable<OrderProductResponse>>, UnauthorizedHttpResult, NotFound, StatusCodeHttpResult>> GetProducts(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id)
 	{
 		var result = await validation.GetProductsAsync(user, id);
 
@@ -150,7 +150,7 @@ public static class OrdersEndpoints
 				{
 					return TypedResults.NoContent();
 				}
-				return TypedResults.Ok(result.ResultValue);
+				return TypedResults.Ok(result.ResultValue.ToOrderProductsResponse());
 
 			case Unauthorized:
 				return TypedResults.Unauthorized();
@@ -165,7 +165,35 @@ public static class OrdersEndpoints
 
 	[HttpPatch("{id}/products", Name = "SetProducts")]
 	[Authorize]
-	public static async Task<Results<NoContent, Ok<IEnumerable<int[]>>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> SetProducts(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] OrderProductsChangeRequest request)
+	public static async Task<Results<NoContent, Ok<OrderProductsChangeResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> SetProducts(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] OrderProductsChangeRequest request)
+	{
+		var result = await validation.UpdateProductsAsync(user, id, request.Products);
+		switch(result.ResultCode)
+		{
+			case Success:
+				if(result.ResultValue == null)
+				{
+					return TypedResults.NoContent();
+				}
+				return TypedResults.Ok(result.ResultValue.ToOrderProductsChangeResponse());
+
+			case Unauthorized:
+				return TypedResults.Unauthorized();
+
+			case ValidationResultCode.NotFound:
+				return TypedResults.NotFound();
+
+			case Failed:
+				return TypedResults.BadRequest<string?>(result.ErrorMessage);
+
+			default:
+				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+		}
+	}
+
+	[HttpPut("{id}/products", Name = "ReplaceProducts")]
+	[Authorize]
+	public static async Task<Results<NoContent, Ok<OrderProductsChangeResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> ReplaceProducts(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] OrderProductsChangeRequest request)
 	{
 		var result = await validation.SetProductsAsync(user, id, request.Products);
 		switch(result.ResultCode)
@@ -175,7 +203,7 @@ public static class OrdersEndpoints
 				{
 					return TypedResults.NoContent();
 				}
-				return TypedResults.Ok(result.ResultValue);
+				return TypedResults.Ok(result.ResultValue.ToOrderProductsChangeResponse());
 
 			case Unauthorized:
 				return TypedResults.Unauthorized();
@@ -183,35 +211,11 @@ public static class OrdersEndpoints
 			case ValidationResultCode.NotFound:
 				return TypedResults.NotFound();
 
-			default:
-				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
-		}
-	}
-
-	[HttpPut("{id}/products", Name = "ReplaceProducts")]
-	[Authorize]
-	public static async Task<Results<NoContent, Ok<IEnumerable<int[]>>, UnauthorizedHttpResult, NotFound, StatusCodeHttpResult>> ReplaceProducts(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] OrderProductsChangeRequest request)
-	{
-		var result = await validation.ReplaceProductsAsync(user, id, request.Products);
-		switch(result.ResultCode)
-		{
-			case Success:
-				if(result.ResultValue == null)
-				{
-					return TypedResults.NoContent();
-				}
-				return TypedResults.Ok(result.ResultValue);
-
-			case Unauthorized:
-				return TypedResults.Unauthorized();
-
-			case ValidationResultCode.NotFound:
-				return TypedResults.NotFound();
+			case Failed:
+				return TypedResults.BadRequest<string?>(result.ErrorMessage);
 
 			default:
 				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
 		}
 	}
-
-
 }
