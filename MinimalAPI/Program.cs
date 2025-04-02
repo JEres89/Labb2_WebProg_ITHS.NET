@@ -1,5 +1,6 @@
-
+//using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using MinimalAPI.Endpoints;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using static System.Net.WebRequestMethods.Http;
@@ -25,37 +26,23 @@ namespace MinimalAPI
 					Description = "A minimal API using ASP.NET 8.0",
 				});
 			});
+            //builder.Services.AddSc
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            app.MapApiEndpoints();
+			// Configure the HTTP request pipeline.
+			if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
 
+
+
             app.UseHttpsRedirection();
 
-			/*var summaries = new[]
-            {
-                "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-            };
 
-            app.MapGet("/weatherforecast", (HttpContext httpContext) =>
-            {
-                var forecast = Enumerable.Range(1, 5).Select(index =>
-                    new WeatherForecast
-                    {
-                        Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                        TemperatureC = Random.Shared.Next(-20, 55),
-                        Summary = summaries[Random.Shared.Next(summaries.Length)]
-                    })
-                    .ToArray();
-                return forecast;
-            })
-            .WithName("GetWeatherForecast")
-            .WithOpenApi();*/
 
 			app.Run();
         }
