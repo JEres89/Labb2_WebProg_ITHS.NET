@@ -55,6 +55,12 @@ public static class EndpointsExtensions
 
 		app.MapDelete("/{id}", OrdersEndpoints.DeleteOrder);
 
+		app.MapGet("/{id}/products", OrdersEndpoints.GetProducts);
+
+		app.MapPatch("/{id}/products", OrdersEndpoints.SetProducts);
+
+		app.MapPut("/{id}/products", OrdersEndpoints.ReplaceProducts);
+
 		return app;
 	}
 
