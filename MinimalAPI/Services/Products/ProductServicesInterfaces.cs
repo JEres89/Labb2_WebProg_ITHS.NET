@@ -3,7 +3,7 @@ using MinimalAPI.DataModels;
 
 namespace MinimalAPI.Services.Products;
 
-public interface IProductsRepository
+public interface IProductsRepository : IDisposable
 {
 	Task<IEnumerable<Product>> GetProductsAsync();
 	Task<Product> CreateProductAsync(Product product);

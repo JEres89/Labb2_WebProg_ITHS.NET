@@ -4,7 +4,7 @@ using MinimalAPI.DTOs.Requests.Orders;
 
 namespace MinimalAPI.Services.Orders;
 
-public interface IOrdersRepository
+public interface IOrdersRepository : IDisposable
 {
 	Task<IEnumerable<Order>> GetOrdersAsync();
 	Task<Order> CreateOrderAsync(Order order);

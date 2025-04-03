@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace MinimalAPI.Services.Customers;
 
-public interface ICustomersRepository
+public interface ICustomersRepository : IDisposable
 {
 	Task<IEnumerable<Customer>> GetCustomersAsync();
 	Task<Customer> CreateCustomerAsync(Customer customer);
