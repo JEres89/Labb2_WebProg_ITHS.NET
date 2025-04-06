@@ -1,6 +1,5 @@
 ﻿using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
-using System.Diagnostics.CodeAnalysis;
 
 namespace MinimalAPI.Services.Customers;
 
@@ -8,8 +7,8 @@ public interface ICustomersRepository : IDisposable
 {
 	Task<IEnumerable<Customer>> GetCustomersAsync();
 	Task<Customer> CreateCustomerAsync(Customer customer);
-	Task<Customer> GetCustomerAsync(int id);
-	Task<Customer> UpdateCustomerAsync(int id, Customer customer);
+	Task<Customer?> GetCustomerAsync(int id);
+	Task<Customer?> UpdateCustomerAsync(int id, Dictionary<string, string> updates);
 	Task<bool> DeleteCustomerAsync(int id);
 	Task<IEnumerable<Customer>> FindCustomersAsync(Predicate<Customer> customerMatch);
 }

@@ -7,8 +7,8 @@ public interface IProductsRepository : IDisposable
 {
 	Task<IEnumerable<Product>> GetProductsAsync();
 	Task<Product> CreateProductAsync(Product product);
-	Task<Product> GetProductAsync(int id);
-	Task<Product> UpdateProductAsync(int id, Product product);
+	Task<Product?> GetProductAsync(int id);
+	Task<Product?> UpdateProductAsync(int id, Dictionary<string, string> updates);
 	Task<bool> DeleteProductAsync(int id);
 }
 

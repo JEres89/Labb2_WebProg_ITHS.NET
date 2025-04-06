@@ -141,7 +141,7 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 
 		order.Status = status;
 
-		var updatedOrder = await repo.UpdateOrderAsync(id, status);
+		var updatedOrder = await repo.UpdateOrderStatusAsync(id, status);
 		var changes = await _worker.SaveChangesAsync();
 
 		return new ValidationResult<Order>

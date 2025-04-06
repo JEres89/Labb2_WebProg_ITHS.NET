@@ -77,43 +77,13 @@ public class ProductsActionValidationService : IProductsActionValidationService
 		if(product == null)
 			return new ValidationResult<Product> { ResultCode = NotFound };
 
-		foreach(var prop in updates)
-		{
-			switch(prop.Key.ToLower())
-			{
-				case "name":
-					product.Name = prop.Value;
-					break;
-				case "description":
-					product.Description = prop.Value;
-					break;
-				case "category":
-					product.Category = prop.Value;
-					break;
-				case "price":
-					if(decimal.TryParse(prop.Value, out var price))
-						product.Price = price;
-					break;
-				case "status":
-					product.Status = Enum.Parse<ProductStatus>(prop.Value);
-					break;
-				case "stock":
-					if(int.TryParse(prop.Value, out var stock))
-						product.Stock = stock;
-					break;
-				default:
-					break;
-			}
-		}
-
-		var updatedProduct = await repo.UpdateProductAsync(id, product);
-		var changes = await _worker.SaveChangesAsync();
+		var updatedProduct = await repo.UpdateProductAsync(id, updates);
 
 		return new ValidationResult<Product>
 		{
-			ResultCode = changes > 0 ? Success : Failed,
+			ResultCode = updatedProduct != null ? Success : Failed,
 			ResultValue = updatedProduct,
-			ErrorMessage = changes > 0 ? null : "No changes were made"
+			ErrorMessage = updatedProduct != null ? null : "No changes were made"
 		};
 	}
 
