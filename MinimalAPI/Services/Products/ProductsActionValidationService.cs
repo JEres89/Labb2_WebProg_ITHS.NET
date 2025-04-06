@@ -1,4 +1,5 @@
-﻿using MinimalAPI.Auth;
+﻿using Microsoft.EntityFrameworkCore.Diagnostics;
+using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
 using static MinimalAPI.Services.ValidationResultCode;
 
@@ -77,13 +78,30 @@ public class ProductsActionValidationService : IProductsActionValidationService
 		if(product == null)
 			return new ValidationResult<Product> { ResultCode = NotFound };
 
-		var updatedProduct = await repo.UpdateProductAsync(id, updates);
+		Product? updatedProduct = null;
+
+		try
+		{
+			updatedProduct = await repo.UpdateProductAsync(id, updates);
+		}
+		catch(InvalidOperationException ex)
+		{
+			_worker.Dispose();
+			if(ex.Message.Contains("could not be found"))
+				return new ValidationResult<Product>
+				{
+					ResultCode = Failed,
+					ErrorMessage = "The property-name was not found. Properties are PascalCaseSensitive."
+				};
+		}
+
+		var changes = await _worker.SaveChangesAsync();
 
 		return new ValidationResult<Product>
 		{
-			ResultCode = updatedProduct != null ? Success : Failed,
-			ResultValue = updatedProduct,
-			ErrorMessage = updatedProduct != null ? null : "No changes were made"
+			ResultCode = changes > 0 ? Success : Failed,
+			ResultValue = changes > 0 ? updatedProduct : null,
+			ErrorMessage = changes > 0 ? null : "No changes were made"
 		};
 	}
 
@@ -94,6 +112,9 @@ public class ProductsActionValidationService : IProductsActionValidationService
 
 		var repo = _worker.Products;
 		var success = await repo.DeleteProductAsync(id);
+		if(!success)
+			return NotFound;
+
 		var changes = await _worker.SaveChangesAsync();
 
 		return changes > 0 ? Success : Failed;

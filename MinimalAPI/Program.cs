@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using MinimalAPI.Auth;
 using MinimalAPI.Endpoints;
 using MinimalAPI.Services;
 using MinimalAPI.Services.Customers;
@@ -27,7 +28,8 @@ public class Program
 			.AddScoped<IUnitOfWork, UnitOfWork>()
 			.AddScoped<ICustomersRepository, CustomersRepository>()
 			.AddScoped<IOrdersRepository, OrdersRepository>()
-			.AddScoped<IProductsRepository, ProductsRepository>();
+			.AddScoped<IProductsRepository, ProductsRepository>()
+			.AddScoped<WebUser>(_ => new WebUser { UserName = "Asd", Role = Role.User });
 
 		builder.Services
 			.AddTransient<ICustomersActionValidationService, CustomersActionValidationService>()
@@ -58,11 +60,7 @@ public class Program
 			app.UseSwaggerUI();
 		}
 
-
-
 		app.UseHttpsRedirection();
-
-
 
 		app.Run();
 	}

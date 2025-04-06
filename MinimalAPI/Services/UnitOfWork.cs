@@ -1,4 +1,5 @@
 ﻿using MinimalAPI.Services.Customers;
+using MinimalAPI.Services.Database;
 using MinimalAPI.Services.Orders;
 using MinimalAPI.Services.Products;
 
@@ -8,20 +9,24 @@ public class UnitOfWork : IUnitOfWork
 {
 	private bool disposedValue;
 
-	public UnitOfWork(ICustomersRepository customers, IOrdersRepository orders, IProductsRepository products)
+	public UnitOfWork(ICustomersRepository customers, IOrdersRepository orders, IProductsRepository products, ApiContext context)
 	{
 		Customers = customers;
 		Orders = orders;
 		Products = products;
+		_context = context;
 	}
 
 	public ICustomersRepository Customers { get; }
 	public IOrdersRepository Orders { get; }
 	public IProductsRepository Products { get; }
 
-	public Task<int> SaveChangesAsync()
+	private readonly ApiContext _context;
+
+
+	public async Task<int> SaveChangesAsync()
 	{
-		throw new NotImplementedException();
+		return await _context.SaveChangesAsync();
 	}
 
 	protected virtual void Dispose(bool disposing)
@@ -31,6 +36,9 @@ public class UnitOfWork : IUnitOfWork
 			if(disposing)
 			{
 				// TODO: dispose managed state (managed objects)
+				Customers.Dispose();
+				Orders.Dispose();
+				Products.Dispose();
 			}
 
 			// TODO: free unmanaged resources (unmanaged objects) and override finalizer

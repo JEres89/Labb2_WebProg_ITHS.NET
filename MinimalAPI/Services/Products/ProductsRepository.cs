@@ -40,14 +40,16 @@ public class ProductsRepository : IProductsRepository
 		}
 		var entity = _context.Entry(product);
 
+		//TODO: Add checking for case-incorrect property names
 		foreach(var prop in updates)
 		{
 			entity.Member(prop.Key).CurrentValue = prop.Value;
 		}
 
-		var changes = await _context.SaveChangesAsync(true);
+		return product;
+		//var changes = await _context.SaveChangesAsync(true);
 
-		return changes > 0 ? product : null;
+		//return changes > 0 ? product : null;
 	}
 
 	public async Task<bool> DeleteProductAsync(int id)
@@ -59,7 +61,7 @@ public class ProductsRepository : IProductsRepository
 		}
 
 		_context.Products.Remove(product);
-		await _context.SaveChangesAsync();
+		//await _context.SaveChangesAsync();
 
 		return true;
 	}
@@ -72,7 +74,6 @@ public class ProductsRepository : IProductsRepository
 
 	public void Dispose()
 	{
-		_context.Dispose();
 		GC.SuppressFinalize(this);
 	}
 }

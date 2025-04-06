@@ -17,7 +17,7 @@ namespace MinimalAPI.Endpoints;
 public static class OrdersEndpoints
 {
 	[HttpGet(Name = "GetOrders")]
-	[Authorize(Roles = "Admin")]
+	//[Authorize(Roles = "Admin")]
 	public static async Task<Results<Ok<OrdersResponse>, UnauthorizedHttpResult, NoContent, BadRequest<string?>, StatusCodeHttpResult>> GetOrders(IOrdersActionValidationService validation, WebUser? user)
 	{
 		var result = await validation.GetOrdersAsync(user);
@@ -42,7 +42,7 @@ public static class OrdersEndpoints
 	}
 
 	[HttpPost(Name = "CreateOrder")]
-	[Authorize]
+	//[Authorize]
 	public static async Task<Results<CreatedAtRoute<OrderResponse>, UnauthorizedHttpResult, BadRequest<string?>, StatusCodeHttpResult>> CreateOrder(IOrdersActionValidationService validation, WebUser? user, [FromBody] OrderCreateRequest request)
 	{
 		var order = request.ToOrder();
@@ -69,7 +69,7 @@ public static class OrdersEndpoints
 	}
 
 	[HttpGet("{id}", Name = "GetOrder")]
-	[Authorize]
+	//[Authorize]
 	public static async Task<Results<Ok<OrderResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> GetOrder(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id)
 	{
 		var result = await validation.GetOrderAsync(user, id);
@@ -90,7 +90,7 @@ public static class OrdersEndpoints
 	}
 
 	[HttpPatch("{id}", Name = "UpdateOrder")]
-	[Authorize]
+	//[Authorize]
 	public static async Task<Results<Ok<OrderResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> UpdateOrder(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] OrderUpdateRequest request)
 	{
 		var result = await validation.UpdateOrderAsync(user, id, request.Status);
@@ -115,7 +115,7 @@ public static class OrdersEndpoints
 	}
 
 	[HttpDelete("{id}", Name = "DeleteOrder")]
-	[Authorize]
+	//[Authorize]
 	public static async Task<Results<NoContent, UnauthorizedHttpResult, NotFound, BadRequest, StatusCodeHttpResult>> DeleteOrder(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id)
 	{
 		switch(await validation.DeleteOrderAsync(user, id))
@@ -138,7 +138,7 @@ public static class OrdersEndpoints
 	}
 
 	[HttpGet("{id}/products", Name = "GetOrderProducts")]
-	[Authorize]
+	//[Authorize]
 	public static async Task<Results<NoContent, Ok<IEnumerable<OrderProductResponse>>, UnauthorizedHttpResult, NotFound, StatusCodeHttpResult>> GetProducts(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id)
 	{
 		var result = await validation.GetProductsAsync(user, id);
@@ -164,7 +164,7 @@ public static class OrdersEndpoints
 	}
 
 	[HttpPatch("{id}/products", Name = "SetProducts")]
-	[Authorize]
+	//[Authorize]
 	public static async Task<Results<NoContent, Ok<OrderProductsChangeResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> SetProducts(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] OrderProductsChangeRequest request)
 	{
 		var result = await validation.UpdateProductsAsync(user, id, request.Products);
@@ -192,7 +192,7 @@ public static class OrdersEndpoints
 	}
 
 	[HttpPut("{id}/products", Name = "ReplaceProducts")]
-	[Authorize]
+	//[Authorize]
 	public static async Task<Results<NoContent, Ok<OrderProductsChangeResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> ReplaceProducts(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] OrderProductsChangeRequest request)
 	{
 		var result = await validation.SetProductsAsync(user, id, request.Products);

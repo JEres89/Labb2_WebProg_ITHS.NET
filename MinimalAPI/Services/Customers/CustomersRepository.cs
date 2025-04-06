@@ -14,7 +14,7 @@ public class CustomersRepository : ICustomersRepository
 
 	public async Task<IEnumerable<Customer>> GetCustomersAsync()
 	{
-		return await _context.Customers.IgnoreAutoIncludes().ToListAsync();
+		return await _context.Customers.Include("Orders").IgnoreAutoIncludes().ToListAsync();
 	}
 
 	public async Task<Customer> CreateCustomerAsync(Customer customer)
@@ -25,7 +25,7 @@ public class CustomersRepository : ICustomersRepository
 
 	public async Task<Customer?> GetCustomerAsync(int id)
 	{
-		return await _context.Customers.IgnoreAutoIncludes().FirstOrDefaultAsync(c => c.Id == id);//.FindAsync(id);
+		return await _context.Customers.Include("Orders").IgnoreAutoIncludes().FirstOrDefaultAsync(c => c.Id == id);//.FindAsync(id);
 	}
 
 	//public async Task<bool> PatchCustomerAsync(int id, Dictionary<string, string> updates)
@@ -74,14 +74,16 @@ public class CustomersRepository : ICustomersRepository
 		}
 		var entity = _context.Entry(customer);
 
+		//TODO: Add checking for case-incorrect property names
 		foreach(var prop in updates)
 		{
 			entity.Member(prop.Key).CurrentValue = prop.Value;
 		}
 
-		var changes = await _context.SaveChangesAsync();
+		return customer;
+		//var changes = await _context.SaveChangesAsync();
 
-		return changes > 0 ? customer : null;
+		//return changes > 0 ? customer : null;
 	}
 
 	public async Task<bool> DeleteCustomerAsync(int id)
@@ -93,7 +95,7 @@ public class CustomersRepository : ICustomersRepository
 		}
 
 		_context.Customers.Remove(customer);
-		await _context.SaveChangesAsync();
+		//await _context.SaveChangesAsync();
 
 		return true;
 	}
@@ -106,7 +108,6 @@ public class CustomersRepository : ICustomersRepository
 
 	public void Dispose()
 	{
-		_context.Dispose();
 		GC.SuppressFinalize(this);
 	}
 }

@@ -1,6 +1,7 @@
 using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
 using MinimalAPI.DTOs.Requests.Orders;
+using System.Threading.Channels;
 using static MinimalAPI.Services.ValidationResultCode;
 
 namespace MinimalAPI.Services.Orders;
@@ -50,11 +51,18 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 
 		var repo = _worker.Orders;
 		var newOrder = await repo.CreateOrderAsync(order);
-		var changes = await _worker.SaveChangesAsync();
+		if(0 == await _worker.SaveChangesAsync())
+		{
+			return new ValidationResult<Order>
+			{
+				ResultCode = Failed,
+				ErrorMessage = "Order could not be created."
+			};
+		}
 
 		return new ValidationResult<Order>
 		{
-			ResultCode = changes > 0 ? Success : Failed,
+			ResultCode = Success,
 			ResultValue = newOrder
 		};
 	}
@@ -142,13 +150,19 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		order.Status = status;
 
 		var updatedOrder = await repo.UpdateOrderStatusAsync(id, status);
-		var changes = await _worker.SaveChangesAsync();
 
+		if(0 == await _worker.SaveChangesAsync())
+		{
+			return new ValidationResult<Order>
+			{
+				ResultCode = Failed,
+				ErrorMessage = "No changes were made."
+			};
+		}
 		return new ValidationResult<Order>
 		{
-			ResultCode = changes > 0 ? Success : Failed,
-			ResultValue = updatedOrder,
-			ErrorMessage = changes > 0 ? null : "No changes were made"
+			ResultCode = Success,
+			ResultValue = updatedOrder
 		};
 	}
 
@@ -205,14 +219,20 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		if(order == null)
 			return new ValidationResult<Order> { ResultCode = NotFound };
 
-		var result = await repo.UpdateProductsAsync(id, setProducts);
-		var changes = await _worker.SaveChangesAsync();
+		var updatedOrder = await repo.UpdateProductsAsync(id, setProducts);
 
+		if(0 == await _worker.SaveChangesAsync())
+		{
+			return new ValidationResult<Order>
+			{
+				ResultCode = Failed,
+				ErrorMessage = "No changes were made."
+			};
+		}
 		return new ValidationResult<Order>
 		{
-			ResultCode = changes > 0 ? Success : Failed,
-			ResultValue = result,
-			ErrorMessage = changes > 0 ? null : "No changes were made"
+			ResultCode = Success,
+			ResultValue = updatedOrder
 		};
 	}
 
@@ -234,14 +254,20 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 				return new ValidationResult<Order> { ResultCode = Unauthorized };
 		}
 
-		var result = await repo.SetProductsAsync(id, setProducts);
-		var changes = await _worker.SaveChangesAsync();
+		var updatedOrder = await repo.SetProductsAsync(id, setProducts);
 
+		if(0 == await _worker.SaveChangesAsync())
+		{
+			return new ValidationResult<Order>
+			{
+				ResultCode = Failed,
+				ErrorMessage = "No changes were made."
+			};
+		}
 		return new ValidationResult<Order>
 		{
-			ResultCode = changes > 0 ? Success : Failed,
-			ResultValue = result,
-			ErrorMessage = changes > 0 ? null : "No changes were made"
+			ResultCode = Success,
+			ResultValue = updatedOrder
 		};
 	}
 }

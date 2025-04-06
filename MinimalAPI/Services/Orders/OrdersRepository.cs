@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MinimalAPI.DataModels;
 using MinimalAPI.Services.Database;
+using System.Linq.Expressions;
 
 namespace MinimalAPI.Services.Orders;
 
@@ -47,9 +48,10 @@ public class OrdersRepository : IOrdersRepository
 		}
 		order.Status = status;
 
-		var changes = await _context.SaveChangesAsync();
+		return order;
+		//var changes = await _context.SaveChangesAsync();
 
-		return changes > 0 ? order : null;
+		//return changes > 0 ? order : null;
 	}
 
 	public async Task<bool> DeleteOrderAsync(int id)
@@ -61,14 +63,15 @@ public class OrdersRepository : IOrdersRepository
 		}
 
 		_context.Orders.Remove(order);
-		var changes = await _context.SaveChangesAsync();
+		return true;
+		//var changes = await _context.SaveChangesAsync();
 
-		return changes > 0;
+		//return changes > 0;
 	}
 
-	public async Task<IEnumerable<Order>> FindOrdersAsync(Predicate<Order> orderMatch)
+	public async Task<IEnumerable<Order>> FindOrdersAsync(Expression<Func<Order, bool>> orderMatch)
 	{
-		return await _context.Orders.Where(o => orderMatch(o)).ToListAsync();
+		return await _context.Orders.Where(orderMatch).ToListAsync();
 		//return await Task.FromResult(_context.Orders.AsEnumerable().Where(c => orderMatch(c)).ToList());
 	}
 
@@ -109,6 +112,10 @@ public class OrdersRepository : IOrdersRepository
 		foreach(var product in productChanges)
 		{
 			var productOrder = order.Products.FirstOrDefault(p => p.ProductId == product[0]);
+			if(!productPrices.TryGetValue(product[0], out var price))
+			{
+				continue;
+			}
 			if(productOrder != null)
 			{
 				if(product[1] == 0)
@@ -117,7 +124,7 @@ public class OrdersRepository : IOrdersRepository
 					continue;
 				}
 				productOrder.Count = product[1];
-				productOrder.Price = productPrices[product[0]];
+				productOrder.Price = price;
 			}
 			else
 			{
@@ -129,11 +136,11 @@ public class OrdersRepository : IOrdersRepository
 					OrderId = id,
 					ProductId = product[0],
 					Count = product[1],
-					Price = productPrices[product[0]]
+					Price = price
 				});
 			}
 		}
-		await _context.SaveChangesAsync();
+		//await _context.SaveChangesAsync();
 		return order;
 	}
 
@@ -161,11 +168,11 @@ public class OrdersRepository : IOrdersRepository
 				Price = productPrices[product[0]]
 			});
 		}
-		await _context.SaveChangesAsync();
+		//await _context.SaveChangesAsync();
 		return order;
 	}
 
-	public async Task<IEnumerable<OrderProduct>> FindOrdersForProductAsync(Func<OrderProduct, bool>? orderMatch, int productId)
+	public async Task<IEnumerable<OrderProduct>?> FindOrdersForProductAsync(Expression<Func<OrderProduct, bool>>? orderMatch, int productId)
 	{
 		//var orders = await _context.OrderProducts
 		//		.Where(op => op.ProductId == productId)
@@ -177,6 +184,8 @@ public class OrdersRepository : IOrdersRepository
 		//return orders
 		//	.Where(orderMatch)
 		//	.ToList();
+		if(!await _context.Products.AnyAsync(p => p.Id == productId))
+			return null;
 
 		if(orderMatch == null)
 			return await _context.OrderProducts
@@ -184,13 +193,12 @@ public class OrdersRepository : IOrdersRepository
 				.ToListAsync();
 
 		return await _context.OrderProducts
-			.Where(op => op.ProductId == productId && orderMatch(op))
+			.Where(op => op.ProductId == productId).Where(orderMatch)
 			.ToListAsync();
 	}
 
 	public void Dispose()
 	{
-		_context.Dispose();
 		GC.SuppressFinalize(this);
 	}
 }

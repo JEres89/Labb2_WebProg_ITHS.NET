@@ -36,7 +36,7 @@ public static class ProductsEndpoints
 	}
 
 	[HttpPost(Name = "CreateProduct")]
-	[Authorize(Roles = "Admin")]
+	//[Authorize(Roles = "Admin")]
 	public static async Task<Results<CreatedAtRoute<ProductResponse>, UnauthorizedHttpResult, BadRequest<string?>, StatusCodeHttpResult>> CreateProduct(IProductsActionValidationService validation, WebUser? user, [FromBody] ProductCreateRequest request)
 	{
 		var product = request.ToProduct();
@@ -80,7 +80,7 @@ public static class ProductsEndpoints
 	}
 
 	[HttpPatch("{id}", Name = "UpdateProduct")]
-	[Authorize(Roles = "Admin")]
+	//[Authorize(Roles = "Admin")]
 	public static async Task<Results<Ok<ProductResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> UpdateProduct(IProductsActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] ProductUpdateRequest request)
 	{
 		var result = await validation.UpdateProductAsync(user, id, request);
@@ -105,7 +105,7 @@ public static class ProductsEndpoints
 	}
 
 	[HttpDelete("{id}", Name = "DeleteProduct")]
-	[Authorize(Roles = "Admin")]
+	//[Authorize(Roles = "Admin")]
 	public static async Task<Results<NoContent, UnauthorizedHttpResult, NotFound, BadRequest, StatusCodeHttpResult>> DeleteProduct(IProductsActionValidationService validation, WebUser? user, [FromRoute] int id)
 	{
 		switch(await validation.DeleteProductAsync(user, id))
@@ -128,7 +128,7 @@ public static class ProductsEndpoints
 	}
 
 	[HttpGet("{id}/orders", Name = "GetProductOrders")]
-	[Authorize(Roles = "Admin")]
+	//[Authorize(Roles = "Admin")]
 	public static async Task<Results<NoContent, Ok<IEnumerable<ProductOrderResponse>>, UnauthorizedHttpResult, NotFound, /*BadRequest<string?>,*/ StatusCodeHttpResult>> GetOrders(IProductsActionValidationService validation, WebUser? user, [FromRoute] int id)
 	{
 		var result = await validation.GetProductOrdersAsync(user, id);

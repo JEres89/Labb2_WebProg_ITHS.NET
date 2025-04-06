@@ -84,13 +84,30 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 		if(customer == null)
 			return new ValidationResult<Customer> { ResultCode = NotFound };
 
-		var updatedCustomer = await repo.UpdateCustomerAsync(id, updates);
-			
+		Customer? updatedCustomer = null;
+
+		try
+		{
+			updatedCustomer = await repo.UpdateCustomerAsync(id, updates);
+		}
+		catch(InvalidOperationException ex)
+		{
+			_worker.Dispose();
+			if(ex.Message.Contains("could not be found"))
+				return new ValidationResult<Customer>
+				{
+					ResultCode = Failed,
+					ErrorMessage = "The property-name was not found. Properties are PascalCaseSensitive."
+				};
+		}
+
+		var changes = await _worker.SaveChangesAsync();
+
 		return new ValidationResult<Customer>
 		{
-			ResultCode = updatedCustomer != null ? Success : Failed,
-			ResultValue = updatedCustomer,
-			ErrorMessage = updatedCustomer != null ? null : "No changes were made"
+			ResultCode = changes > 0 ? Success : Failed,
+			ResultValue = changes > 0 ? updatedCustomer : null,
+			ErrorMessage = changes > 0 ? null : "No changes were made"
 		};
 	}
 
@@ -101,6 +118,9 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 
 		var repo = _worker.Customers;
 		var success = await repo.DeleteCustomerAsync(id);
+		if(!success)
+			return NotFound;
+
 		var changes = await _worker.SaveChangesAsync();
 
 		return changes > 0 ? Success : Failed;
