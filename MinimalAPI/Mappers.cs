@@ -90,7 +90,8 @@ public static class CustomerMapping
 			LastName = customer.LastName,
 			Email = customer.Email,
 			Phone = customer.Phone,
-			Address = customer.Address
+			Address = customer.Address,
+			Orders = customer.Orders?.Select(OrderMapping.ToSlimOrderResponse)
 		};
 	}
 
@@ -120,14 +121,26 @@ public static class OrderMapping
 	public const string ORDERS_PATH = "/api/orders/";
 	public static OrderResponse ToOrderResponse(this Order order)
 	{
+		var products = order.ToProductCountArray();
 		return new OrderResponse
 		{
 			Id = order.Id,
 			CustomerId = order.CustomerId,
 			Status = order.Status,
-			Products = order.ToProductCountArray()
+			Products = products.Length == 0 ? null : products
 		};
 	}
+	public static OrderResponse ToSlimOrderResponse(this Order order)
+	{
+		return new OrderResponse
+		{
+			Id = order.Id,
+			CustomerId = order.CustomerId,
+			Status = order.Status,
+			Products = null
+		};
+	}
+
 	public static OrdersResponse ToOrdersResponse(this IEnumerable<Order> orders)
 	{
 		return new OrdersResponse
@@ -180,6 +193,9 @@ public static class OrderMapping
 
 	private static int[][] ToProductCountArray(this Order order)
 	{
+		if(order.Products == null)
+			return Array.Empty<int[]>();
+
 		return (from product in order.Products
 				select new int[] { product.ProductId, product.Count }).ToArray();
 	}

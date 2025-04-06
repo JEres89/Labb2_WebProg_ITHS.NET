@@ -1,29 +1,29 @@
 ﻿using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
-using MinimalAPI.DTOs.Requests.Orders;
+using System.Linq.Expressions;
 
 namespace MinimalAPI.Services.Orders;
 
-public interface IOrdersRepository
+public interface IOrdersRepository : IDisposable
 {
 	Task<IEnumerable<Order>> GetOrdersAsync();
 	Task<Order> CreateOrderAsync(Order order);
 	/// <summary>
 	/// Applies lazy loading on <see cref="OrderProduct.Product"/> in <see cref="Order.Products"/> if <paramref name="withProducts"/> is <see langword="false"/>, meaning they will be null if not loaded.
 	/// </summary>
-	Task<Order> GetOrderAsync(int id, bool withProducts = false);
-	Task<Order> UpdateOrderAsync(int id, OrderStatus status);
+	Task<Order?> GetOrderAsync(int id, bool withProducts = false);
+	Task<Order?> UpdateOrderStatusAsync(int id, OrderStatus status);
 	Task<bool> DeleteOrderAsync(int id);
-	Task<IEnumerable<Order>> FindOrdersAsync(Predicate<Order> orderMatch);
-	Task<bool> EditProductAsync(int id, int productId, int amount);
-	Task<Order> UpdateProductsAsync(int id, IEnumerable<int[]> changeProducts);
-	Task<Order> SetProductsAsync(int id, IEnumerable<int[]> newProducts);
+	Task<IEnumerable<Order>> FindOrdersAsync(Expression<Func<Order, bool>> orderMatch);
+	//Task<bool> EditProductAsync(int id, int productId, int amount);
+	Task<Order?> UpdateProductsAsync(int id, IEnumerable<int[]> productChanges);
+	Task<Order?> SetProductsAsync(int id, IEnumerable<int[]> newProducts);
 	/// <summary>
 	/// Applies lazy loading on <see cref="OrderProduct.Product"/>, meaning it will be null if not loaded.
 	/// </summary>
 	/// <param name="orderMatch">Pass in for filtering results, if null returns all orders with the product.</param>
 	/// <returns></returns>
-	Task<IEnumerable<OrderProduct>> FindOrdersForProductAsync(Predicate<OrderProduct>? orderMatch, int productId);
+	Task<IEnumerable<OrderProduct>?> FindOrdersForProductAsync(Expression<Func<OrderProduct, bool>>? orderMatch, int productId);
 }
 
 public interface IOrdersActionValidationService

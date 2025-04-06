@@ -1,50 +1,67 @@
-//using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using MinimalAPI.Auth;
 using MinimalAPI.Endpoints;
-using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
-using static System.Net.WebRequestMethods.Http;
+using MinimalAPI.Services;
+using MinimalAPI.Services.Customers;
+using MinimalAPI.Services.Database;
+using MinimalAPI.Services.Orders;
+using MinimalAPI.Services.Products;
 
-namespace MinimalAPI
+namespace MinimalAPI;
+
+public class Program
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
+	private const string ConnectionString =
+		"Server=localhost;" +
+		"Database=WebbLabb2;" +
+		"Trusted_Connection=True;" +
+		"TrustServerCertificate=True";
+	public static void Main(string[] args)
+	{
+		var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-            builder.Services.AddAuthorization();
+		// Add services to the container.
+		builder.Services.AddAuthorization();
 
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen(options =>
+		builder.Services
+			.AddScoped<IUnitOfWork, UnitOfWork>()
+			.AddScoped<ICustomersRepository, CustomersRepository>()
+			.AddScoped<IOrdersRepository, OrdersRepository>()
+			.AddScoped<IProductsRepository, ProductsRepository>()
+			.AddScoped<WebUser>(_ => new WebUser { UserName = "Asd", Role = Role.User });
+
+		builder.Services
+			.AddTransient<ICustomersActionValidationService, CustomersActionValidationService>()
+			.AddTransient<IProductsActionValidationService, ProductsActionValidationService>()
+			.AddTransient<IOrdersActionValidationService, OrdersActionValidationService>();
+
+		builder.Services.AddDbContext<ApiContext>(options => options.UseSqlServer(ConnectionString));
+
+		// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+		builder.Services.AddEndpointsApiExplorer();
+		builder.Services.AddSwaggerGen(options =>
+		{
+			options.SwaggerDoc("v1", new OpenApiInfo
 			{
-				options.SwaggerDoc("v1", new OpenApiInfo { 
-                    Title = "Webb Labb 2 MinimalAPI", 
-                    Version = "v1",
-					Description = "A minimal API using ASP.NET 8.0",
-				});
+				Title = "Webb Labb 2 MinimalAPI",
+				Version = "v1",
+				Description = "A minimal API using ASP.NET 8.0",
 			});
-            //builder.Services.AddSc
+		});
 
-            var app = builder.Build();
+		var app = builder.Build();
 
-            app.MapApiEndpoints();
-			// Configure the HTTP request pipeline.
-			if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+		app.MapApiEndpoints();
+		// Configure the HTTP request pipeline.
+		if(app.Environment.IsDevelopment())
+		{
+			app.UseSwagger();
+			app.UseSwaggerUI();
+		}
 
+		app.UseHttpsRedirection();
 
-
-            app.UseHttpsRedirection();
-
-
-
-			app.Run();
-        }
-    }
+		app.Run();
+	}
 }

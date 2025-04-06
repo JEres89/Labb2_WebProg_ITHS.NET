@@ -1,4 +1,5 @@
-﻿using MinimalAPI.Auth;
+﻿using Microsoft.EntityFrameworkCore.Diagnostics;
+using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
 using static MinimalAPI.Services.ValidationResultCode;
 
@@ -77,42 +78,29 @@ public class ProductsActionValidationService : IProductsActionValidationService
 		if(product == null)
 			return new ValidationResult<Product> { ResultCode = NotFound };
 
-		foreach(var prop in updates)
+		Product? updatedProduct = null;
+
+		try
 		{
-			switch(prop.Key.ToLower())
-			{
-				case "name":
-					product.Name = prop.Value;
-					break;
-				case "description":
-					product.Description = prop.Value;
-					break;
-				case "category":
-					product.Category = prop.Value;
-					break;
-				case "price":
-					if(decimal.TryParse(prop.Value, out var price))
-						product.Price = price;
-					break;
-				case "status":
-					product.Status = Enum.Parse<ProductStatus>(prop.Value);
-					break;
-				case "stock":
-					if(int.TryParse(prop.Value, out var stock))
-						product.Stock = stock;
-					break;
-				default:
-					break;
-			}
+			updatedProduct = await repo.UpdateProductAsync(id, updates);
+		}
+		catch(InvalidOperationException ex)
+		{
+			_worker.Dispose();
+			if(ex.Message.Contains("could not be found"))
+				return new ValidationResult<Product>
+				{
+					ResultCode = Failed,
+					ErrorMessage = "The property-name was not found. Properties are PascalCaseSensitive."
+				};
 		}
 
-		var updatedProduct = await repo.UpdateProductAsync(id, product);
 		var changes = await _worker.SaveChangesAsync();
 
 		return new ValidationResult<Product>
 		{
 			ResultCode = changes > 0 ? Success : Failed,
-			ResultValue = updatedProduct,
+			ResultValue = changes > 0 ? updatedProduct : null,
 			ErrorMessage = changes > 0 ? null : "No changes were made"
 		};
 	}
@@ -124,6 +112,9 @@ public class ProductsActionValidationService : IProductsActionValidationService
 
 		var repo = _worker.Products;
 		var success = await repo.DeleteProductAsync(id);
+		if(!success)
+			return NotFound;
+
 		var changes = await _worker.SaveChangesAsync();
 
 		return changes > 0 ? Success : Failed;

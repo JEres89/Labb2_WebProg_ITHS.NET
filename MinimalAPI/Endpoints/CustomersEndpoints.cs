@@ -15,7 +15,7 @@ namespace MinimalAPI.Endpoints;
 public static class CustomersEndpoints
 {
 	[HttpGet(Name = "GetCustomers")]
-	[Authorize(Roles = "Admin")]
+	//[Authorize(Roles = "Admin")]
 	public static async Task<Results<Ok<CustomersResponse>, UnauthorizedHttpResult, NoContent, BadRequest<string?>, StatusCodeHttpResult>> GetCustomers(ICustomersActionValidationService validation, WebUser? user)
 	{
 		var result = await validation.GetCustomersAsync(user);
@@ -40,7 +40,7 @@ public static class CustomersEndpoints
 	}
 
 	[HttpPost(Name = "CreateCustomer")]
-	[Authorize(Roles = "Admin")]
+	//[Authorize(Roles = "Admin")]
 	public static async Task<Results<CreatedAtRoute<CustomerResponse>, UnauthorizedHttpResult, BadRequest<string?>, StatusCodeHttpResult>> CreateCustomer(ICustomersActionValidationService validation, WebUser? user, [FromBody] CustomerCreateRequest request)
 	{
 		var customer = request.ToCustomer();
@@ -67,7 +67,7 @@ public static class CustomersEndpoints
 	}
 
 	[HttpGet("{id}", Name = "GetCustomer")]
-	[Authorize]
+	//[Authorize]
 	public static async Task<Results<Ok<CustomerResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> GetCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
 	{
 		var result = await validation.GetCustomerAsync(user, id);
@@ -91,7 +91,7 @@ public static class CustomersEndpoints
 	}
 
 	[HttpPatch("{id}", Name = "UpdateCustomer")]
-	[Authorize]
+	//[Authorize]
 	public static async Task<Results<Ok<CustomerResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> UpdateCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] CustomerUpdateRequest request)
 	{
 		var result = await validation.UpdateCustomerAsync(user, id, request);
@@ -116,7 +116,7 @@ public static class CustomersEndpoints
 	}
 
 	[HttpDelete("{id}", Name = "DeleteCustomer")]
-	[Authorize]
+	//[Authorize]
 	public static async Task<Results<NoContent, UnauthorizedHttpResult, NotFound, BadRequest, StatusCodeHttpResult>> DeleteCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
 	{
 		switch(await validation.DeleteCustomerAsync(user, id))
@@ -139,7 +139,7 @@ public static class CustomersEndpoints
 	}
 
 	[HttpGet("{id}/orders", Name = "GetCustomerOrders")]
-	[Authorize]
+	//[Authorize]
 	public static async Task<Results<NoContent, Ok<OrdersResponse>, UnauthorizedHttpResult, NotFound, /*BadRequest<string?>,*/ StatusCodeHttpResult>> GetOrders(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
 	{
 		var result = await validation.GetOrdersAsync(user, id);
