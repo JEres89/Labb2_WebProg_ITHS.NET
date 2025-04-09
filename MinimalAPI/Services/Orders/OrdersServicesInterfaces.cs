@@ -7,7 +7,7 @@ namespace MinimalAPI.Services.Orders;
 public interface IOrdersRepository : IDisposable
 {
 	Task<IEnumerable<Order>> GetOrdersAsync();
-	Task<Order> CreateOrderAsync(Order order);
+	Task<Order> CreateOrderAsync(Order order, IEnumerable<int[]>? products);
 	/// <summary>
 	/// Applies lazy loading on <see cref="OrderProduct.Product"/> in <see cref="Order.Products"/> if <paramref name="withProducts"/> is <see langword="false"/>, meaning they will be null if not loaded.
 	/// </summary>
@@ -29,7 +29,7 @@ public interface IOrdersRepository : IDisposable
 public interface IOrdersActionValidationService
 {
 	Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync(WebUser? user);
-	Task<ValidationResult<Order>> CreateOrderAsync(WebUser? user, Order order);
+	Task<ValidationResult<Order>> CreateOrderAsync(WebUser? user, Order order, int[][]? products);
 	Task<ValidationResult<Order>> GetOrderAsync(WebUser? user, int id);
 	Task<ValidationResult<Order>> UpdateOrderAsync(WebUser? user, int id, OrderStatus status);
 	Task<ValidationResultCode> DeleteOrderAsync(WebUser? user, int id);

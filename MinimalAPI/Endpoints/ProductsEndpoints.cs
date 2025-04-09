@@ -2,10 +2,9 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MinimalAPI.Auth;
+using MinimalAPI.DTOs;
 using MinimalAPI.DTOs.Requests.Products;
 using MinimalAPI.DTOs.Responses.Products;
-using MinimalAPI.DTOs.Responses.Orders;
-using MinimalAPI.Mappers;
 using MinimalAPI.Services;
 using MinimalAPI.Services.Products;
 using static MinimalAPI.Services.ValidationResultCode;

@@ -18,8 +18,15 @@ public class OrdersRepository : IOrdersRepository
 		return await _context.Orders.ToListAsync();
 	}
 
-	public async Task<Order> CreateOrderAsync(Order order)
+	public async Task<Order> CreateOrderAsync(Order order, IEnumerable<int[]>? products)
 	{
+		if(products != null)
+		{
+			await foreach(var item in GenerateOrderProductsAsync(order.Id, products))
+			{
+				order.Products.Add(item);
+			}
+		}
 		_context.Orders.Add(order);
 		return order;
 	}
@@ -151,25 +158,33 @@ public class OrdersRepository : IOrdersRepository
 			return null;
 		order.Products.Clear();
 
+		await foreach(var item in GenerateOrderProductsAsync(id, newProducts))
+		{
+			order.Products.Add(item);
+		}
+		return order;
+	}
+
+	private async IAsyncEnumerable<OrderProduct> GenerateOrderProductsAsync(int orderId, IEnumerable<int[]> productChanges)
+	{
+		//var orderProducts = new List<OrderProduct>();
 		var productPrices = await _context.Products
-			.Where(p => newProducts.Select(pc => pc[0]).Contains(p.Id))
+			.Where(p => productChanges.Select(pc => pc[0]).Contains(p.Id))
 			.ToDictionaryAsync(p => p.Id, p => p.Price);
 
-		foreach(var product in newProducts)
+		foreach(var product in productChanges)
 		{
 			if(product[1] == 0)
 				continue;
-
-			order.Products.Add(new OrderProduct
+			yield return new OrderProduct
 			{
-				OrderId = id,
+				OrderId = orderId,
 				ProductId = product[0],
 				Count = product[1],
 				Price = productPrices[product[0]]
-			});
+			};
 		}
-		//await _context.SaveChangesAsync();
-		return order;
+		//return orderProducts;
 	}
 
 	public async Task<IEnumerable<OrderProduct>?> FindOrdersForProductAsync(Expression<Func<OrderProduct, bool>>? orderMatch, int productId)
