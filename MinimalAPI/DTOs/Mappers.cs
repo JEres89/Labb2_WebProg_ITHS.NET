@@ -8,7 +8,7 @@ using System.Reflection.Metadata;
 using System.Linq;
 using MinimalAPI.DTOs.Requests.Orders;
 
-namespace MinimalAPI.Mappers;
+namespace MinimalAPI.DTOs;
 
 public static class ProductMapping
 {
@@ -62,17 +62,17 @@ public static class ProductMapping
 	//		Stock = request.Stock
 	//	};
 	//}
-	
+
 	public static IEnumerable<ProductOrderResponse> ToProductOrdersResponse(this IEnumerable<OrderProduct> request)
 	{
-		return (from productOrder in request
+		return from productOrder in request
 				select new ProductOrderResponse
 				{
 					Path = OrderMapping.ORDERS_PATH+productOrder.OrderId,
 					Count = productOrder.Count,
 					Price = productOrder.Price,
 					OrderId = productOrder.OrderId
-				});
+				};
 	}
 
 }
@@ -97,8 +97,9 @@ public static class CustomerMapping
 
 	public static CustomersResponse ToCustomersResponse(this IEnumerable<Customer> customers)
 	{
-		return new CustomersResponse { 
-			Customers = customers.Select(ToCustomerResponse) 
+		return new CustomersResponse
+		{
+			Customers = customers.Select(ToCustomerResponse)
 		};
 	}
 
@@ -154,21 +155,21 @@ public static class OrderMapping
 		return new Order
 		{
 			CustomerId = request.CustomerId,
-			Products = new(),//ToOrderProductList(request.Products, 0, priceSource),
+			Products = new(),
 			Status = OrderStatus.New
 		};
 	}
 
 	public static IEnumerable<OrderProductResponse> ToOrderProductsResponse(this Order order)
 	{
-		return (from product in order.Products
+		return from product in order.Products
 				select new OrderProductResponse
 				{
 					Path = ProductMapping.PRODUCTS_PATH + product.ProductId,
 					Count = product.Count,
 					Price = product.Price,
 					Product = product.Product!.ToProductResponse()
-				});
+				};
 	}
 
 	public static OrderProductsChangeResponse ToOrderProductsChangeResponse(this Order order/*, OrderProductsChangeRequest request*/)
@@ -187,7 +188,7 @@ public static class OrderMapping
 		//		order.Products.Add(new OrderProduct { ProductId = newP[0], Count = newP[1] });
 		//	}
 		//}
-		
+
 		return new OrderProductsChangeResponse { Products = order.ToProductCountArray() };
 	}
 

@@ -1,7 +1,5 @@
 using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
-using MinimalAPI.DTOs.Requests.Orders;
-using System.Threading.Channels;
 using static MinimalAPI.Services.ValidationResultCode;
 
 namespace MinimalAPI.Services.Orders;
@@ -44,13 +42,17 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		}
 	}
 
-	public async Task<ValidationResult<Order>> CreateOrderAsync(WebUser? user, Order order)
+	public async Task<ValidationResult<Order>> CreateOrderAsync(WebUser? user, Order order, int[][]? products)
 	{
 		if(user == null || (user.CustomerId != order.CustomerId && user.Role != Role.Admin))
 			return new ValidationResult<Order> { ResultCode = Unauthorized };
 
 		var repo = _worker.Orders;
-		var newOrder = await repo.CreateOrderAsync(order);
+		var newOrder = await repo.CreateOrderAsync(order, products);
+		if(products != null)
+		{
+			await repo.SetProductsAsync(newOrder.Id, products);
+		}
 		if(0 == await _worker.SaveChangesAsync())
 		{
 			return new ValidationResult<Order>

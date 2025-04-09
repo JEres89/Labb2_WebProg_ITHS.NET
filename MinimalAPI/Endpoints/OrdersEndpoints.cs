@@ -3,12 +3,10 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
+using MinimalAPI.DTOs;
 using MinimalAPI.DTOs.Requests.Orders;
 using MinimalAPI.DTOs.Responses.Orders;
-using MinimalAPI.DTOs.Responses.Products;
-using MinimalAPI.Mappers;
 using MinimalAPI.Services;
-using MinimalAPI.Services.Customers;
 using MinimalAPI.Services.Orders;
 using static MinimalAPI.Services.ValidationResultCode;
 
@@ -46,7 +44,7 @@ public static class OrdersEndpoints
 	public static async Task<Results<CreatedAtRoute<OrderResponse>, UnauthorizedHttpResult, BadRequest<string?>, StatusCodeHttpResult>> CreateOrder(IOrdersActionValidationService validation, WebUser? user, [FromBody] OrderCreateRequest request)
 	{
 		var order = request.ToOrder();
-		var result = await validation.CreateOrderAsync(user, order);
+		var result = await validation.CreateOrderAsync(user, order, request.Products);
 		order = result.ResultValue;
 		switch(result.ResultCode)
 		{
