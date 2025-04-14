@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35707.178 d17.12
+VisualStudioVersion = 17.12.35707.178
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MinimalAPI", "MinimalAPI\MinimalAPI.csproj", "{528CEA94-3BAD-4F4C-AC38-14C25CC922D9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlazorFrontend", "BlazorFrontend\BlazorFrontend.csproj", "{794979FB-3CD2-4DAB-B92E-9EA209F055EA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{528CEA94-3BAD-4F4C-AC38-14C25CC922D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{528CEA94-3BAD-4F4C-AC38-14C25CC922D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{528CEA94-3BAD-4F4C-AC38-14C25CC922D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{794979FB-3CD2-4DAB-B92E-9EA209F055EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{794979FB-3CD2-4DAB-B92E-9EA209F055EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{794979FB-3CD2-4DAB-B92E-9EA209F055EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{794979FB-3CD2-4DAB-B92E-9EA209F055EA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
