@@ -1,7 +1,14 @@
-﻿namespace MinimalAPI.DataModels;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
+namespace MinimalAPI.DataModels;
+
+[Index(nameof(Email), IsUnique = true)]
 public class Customer
 {
+	[Key]
+	[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
 	public int Id { get; set; }
 	public required string FirstName { get; set; }
 	public required string LastName { get; set; }

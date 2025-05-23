@@ -1,4 +1,16 @@
-﻿using MinimalAPI.DTOs.Responses.Customers;
+﻿// Gray usings are not used in the code, but are used in the project for better readability
+using Microsoft.AspNetCore.Http.HttpResults;
+using MinimalAPI.Auth;
+using MinimalAPI.DTOs.Requests.Customers;
+using MinimalAPI.DTOs.Requests.Orders;
+using MinimalAPI.DTOs.Requests.Products;
+using MinimalAPI.DTOs.Responses.Customers;
+using MinimalAPI.DTOs.Responses.Orders;
+using MinimalAPI.DTOs.Responses.Products;
+
+using MinimalAPI.Services.Customers;
+using MinimalAPI.Services.Orders;
+using MinimalAPI.Services.Products;
 
 namespace MinimalAPI.Endpoints;
 

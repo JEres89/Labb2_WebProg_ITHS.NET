@@ -1,5 +1,7 @@
 ﻿using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
 
 namespace MinimalAPI.Services.Products;
 
@@ -18,6 +20,6 @@ public interface IProductsActionValidationService
 	Task<ValidationResult<Product>> CreateProductAsync(WebUser? user, Product product);
 	Task<ValidationResult<Product>> GetProductAsync(int id);
 	Task<ValidationResult<Product>> UpdateProductAsync(WebUser? user, int id, Dictionary<string, string> product);
-	Task<ValidationResultCode> DeleteProductAsync(WebUser? user, int id);
+	Task<ValidationResult<int>> DeleteProductAsync(WebUser? user, int id);
 	Task<ValidationResult<IEnumerable<OrderProduct>>> GetProductOrdersAsync(WebUser? user, int id);
 }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using MinimalAPI.DataModels;
 using MinimalAPI.Services.Database;
 
@@ -19,8 +20,8 @@ public class ProductsRepository : IProductsRepository
 
 	public async Task<Product> CreateProductAsync(Product product)
 	{
-		_context.Products.Add(product);
-		return product;
+		return (await _context.Products.AddAsync(product)).Entity;
+		//return product;
 	}
 
 	public async Task<Product?> GetProductAsync(int id)
@@ -30,9 +31,6 @@ public class ProductsRepository : IProductsRepository
 
 	public async Task<Product?> UpdateProductAsync(int id, Dictionary<string, string> updates)
 	{
-		//Product product = new() { Id = id, FirstName = "", LastName = "", Email = "" };
-		//var entity = _context.Attach<Product>(product);
-
 		var product = await _context.Products.FindAsync(id);
 		if(product == null)
 		{
@@ -40,16 +38,12 @@ public class ProductsRepository : IProductsRepository
 		}
 		var entity = _context.Entry(product);
 
-		//TODO: Add checking for case-incorrect property names
 		foreach(var prop in updates)
 		{
-			entity.Member(prop.Key).CurrentValue = prop.Value;
+			entity.SetProperty(prop.Key, prop.Value);
 		}
 
 		return product;
-		//var changes = await _context.SaveChangesAsync(true);
-
-		//return changes > 0 ? product : null;
 	}
 
 	public async Task<bool> DeleteProductAsync(int id)

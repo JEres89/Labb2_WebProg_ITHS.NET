@@ -26,10 +26,10 @@ public class Program
 
 		builder.Services
 			.AddScoped<IUnitOfWork, UnitOfWork>()
-			.AddScoped<ICustomersRepository, CustomersRepository>()
-			.AddScoped<IOrdersRepository, OrdersRepository>()
-			.AddScoped<IProductsRepository, ProductsRepository>()
-			.AddScoped<WebUser>(_ => new WebUser { UserName = "Asd", Role = Role.User });
+			//.AddScoped<ICustomersRepository, CustomersRepository>()
+			//.AddScoped<IOrdersRepository, OrdersRepository>()
+			//.AddScoped<IProductsRepository, ProductsRepository>()
+			.AddScoped<WebUser>(_ => new WebUser { UserName = "Asd", Role = Role.Admin });
 
 		builder.Services
 			.AddTransient<ICustomersActionValidationService, CustomersActionValidationService>()
