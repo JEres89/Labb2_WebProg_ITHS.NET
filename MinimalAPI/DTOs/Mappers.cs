@@ -28,9 +28,9 @@ public static class ProductMapping
 		};
 	}
 
-	public static ProductsResponse ToProductsResponse(this IEnumerable<Product> products)
+	public static ProductGetAllResponse ToProductsResponse(this IEnumerable<Product> products)
 	{
-		return new ProductsResponse
+		return new ProductGetAllResponse
 		{
 			Products = products.Select(ToProductResponse)
 		};
@@ -95,9 +95,9 @@ public static class CustomerMapping
 		};
 	}
 
-	public static CustomersResponse ToCustomersResponse(this IEnumerable<Customer> customers)
+	public static CustomerGetAllResponse ToCustomersResponse(this IEnumerable<Customer> customers)
 	{
-		return new CustomersResponse
+		return new CustomerGetAllResponse
 		{
 			Customers = customers.Select(ToCustomerResponse)
 		};

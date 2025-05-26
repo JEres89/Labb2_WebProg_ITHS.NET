@@ -1,8 +1,10 @@
 using BlazorFrontend.Components;
+using BlazorFrontend.Services;
 
 namespace BlazorFrontend;
 public class Program
 {
+	private const string API_URL = "https://localhost:7255";
 	public static void Main(string[] args)
 	{
 		var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +12,16 @@ public class Program
 		// Add services to the container.
 		builder.Services.AddRazorComponents()
 			.AddInteractiveServerComponents();
+
+		builder.Services
+			.AddScoped<ProductService>()
+			.AddHttpClient("APIclient", client =>
+			{
+				client.BaseAddress = new Uri(API_URL);
+				client.Timeout = TimeSpan.FromSeconds(5);
+				//client.DefaultRequestHeaders.Authorization = 
+			})
+			.AddTypedClient<ProductService>();
 
 		var app = builder.Build();
 

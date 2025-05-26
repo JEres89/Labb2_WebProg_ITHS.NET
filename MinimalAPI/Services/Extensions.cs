@@ -39,8 +39,21 @@ public static class Extensions
 				throw new Exception($"Invalid property name: {key}");
 			}
 		}
-		if(member.Metadata.ClrType != typeof(string))
+		var memberType = member.Metadata.ClrType;
+		if(memberType != typeof(string))
 		{
+			if(memberType.IsEnum)
+			{
+				if(Enum.TryParse(memberType, value, true, out var enumValue))
+				{
+					member.CurrentValue = enumValue;
+					return;
+				}
+				else
+				{
+					throw new Exception($"Invalid value '{value}' for enum type '{memberType.Name}' in property '{key}'");
+				}
+			}
 			// TODO: Enforce input having matching globalization for decimal symbol (, or .)
 			member.CurrentValue = Convert.ChangeType(value, member.Metadata.ClrType);
 		}

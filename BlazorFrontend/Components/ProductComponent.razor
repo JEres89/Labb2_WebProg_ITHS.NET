@@ -1,0 +1,15 @@
+﻿@using MinimalAPI.DTOs.Responses.Products
+
+<span>Id: <i>@Product.Id</i></span>
+<b>@Product.Name</b>
+<p>@Product.Description</p>
+<span>Categories:<i> @Product.Category</i></span>
+<b>@Product.Price kr</b>
+<b>@Product.Status</b>
+<span>Stock: <b>@Product.Stock</b></span>
+
+@code {
+
+	[Parameter]
+	public required ProductResponse Product { get; set; }
+}

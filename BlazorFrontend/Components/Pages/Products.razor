@@ -1,0 +1,139 @@
+﻿@using MinimalAPI.DTOs.Requests.Products
+@using MinimalAPI.DTOs.Responses.Products
+@using System.Text.Json
+@using MinimalAPI.DataModels
+
+@page "/products"
+
+@inject BlazorFrontend.Services.ProductService ProductService
+
+<h3>ProductService Demo</h3>
+<div class="d-grid">
+    <textarea class="sticky-lg-top" rows="5" cols="60" readonly>@resultMessage</textarea>
+
+    <!-- GetProductsAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col">
+            <button @onclick="GetProducts">Get Products</button>
+        </div>
+        <div class="col-10 overflow-scroll">
+            @if(productsCollection != null)
+            {
+                foreach(var product in productsCollection)
+                {
+                    <div class="col-3 d-inline-flex flex-column border border-1 border-dark">
+                        <ProductComponent Product="product" />
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- GetProductAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="getProductId" placeholder="Product ID" />
+            <button @onclick="GetProduct" disabled="@getProductInvalid">Get Product</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            @if(productResult != null)
+            {
+                <ProductComponent Product="productResult" />
+            }
+        </div>
+    </div>
+
+    <!-- CreateProductAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <label>
+                * <input type="text" @bind="createProductName" placeholder="Name" />
+            </label>
+            <label>
+                * <input type="text" @bind="createProductDescription" placeholder="Description" />
+            </label>
+            <label>
+                * <input type="text" @bind="createProductCategory" placeholder="Category" />
+            </label>
+            <label>
+                <input type="number" @bind="createProductPrice" placeholder="Price" />
+            </label>
+            <label>
+                <input type="number" @bind="createProductStock" placeholder="Stock" />
+            </label>
+            ( * required )
+            <button @onclick="CreateProduct" disabled="@createProductInvalid">Create Product</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            @if(createProductResult != null)
+            {
+                <ProductComponent Product="createProductResult" />
+            }
+        </div>
+    </div>
+
+    <!-- UpdateProductAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="updateProductId" placeholder="Id" />
+            <input type="text" @bind="updateProductName" placeholder="Name" />
+            <input type="text" @bind="updateProductDescription" placeholder="Description" />
+            <input type="text" @bind="updateProductCategory" placeholder="Category" />
+            <input type="number" @bind="updateProductPrice" placeholder="Price" />
+            <InputRadioGroup @bind-Value="updateProductStatus">
+                @foreach(var status in (ProductStatus[])Enum.GetValues(typeof(ProductStatus)))
+                {
+                    <label>
+                        <InputRadio Value="status" />
+                        @status
+                    </label>
+                }
+            </InputRadioGroup>
+            <input type="number" @bind="updateProductStock" placeholder="Stock" />
+            <button @onclick="UpdateProduct" disabled="@updateProductInvalid">Update Product</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            @if(updateProductResult != null)
+            {
+                <ProductComponent Product="updateProductResult" />
+            }
+            <textarea rows="3" cols="60" readonly>@updateProductResultStr</textarea>
+        </div>
+    </div>
+
+    <!-- DeleteProductAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="deleteProductId" placeholder="Product ID" />
+            <button @onclick="DeleteProduct" disabled="@deleteProductValid">Delete Product</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            <textarea rows="1" cols="60" readonly>@deleteProductResult</textarea>
+        </div>
+    </div>
+
+    <!-- GetProductOrdersAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="getProductOrdersId" placeholder="Product ID" />
+            <button @onclick="GetProductOrders" disabled="@getProductOrdersValid">Get Product Orders</button>
+        </div>
+        <div class="col-1" />
+        <div class="col-10 overflow-scroll">
+            @if(productOrdersResult != null)
+            {
+                foreach(var product in productOrdersResult)
+                {
+                    <div class="col-3 d-inline-flex flex-column border border-1 border-dark">
+                        <ProductOrderComponent Product="product" />
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+</div>

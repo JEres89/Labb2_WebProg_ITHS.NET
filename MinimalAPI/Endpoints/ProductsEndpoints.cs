@@ -12,7 +12,7 @@ namespace MinimalAPI.Endpoints;
 
 using GetProductsResponseTask =
 	Task<Results<
-		Ok<ProductsResponse>,
+		Ok<ProductGetAllResponse>,
 		JsonHttpResult<string>,
 		StatusCodeHttpResult>>;
 
@@ -136,7 +136,7 @@ public static class ProductsEndpoints
 
 				return TypedResults.Json(result.ErrorMessage, statusCode: (int)result.ResultCode);
 		}
-	}
+	}	
 
 	[HttpGet("{id}/orders", Name = "GetProductOrders")]
 	//[Authorize(Roles = "Admin")]
