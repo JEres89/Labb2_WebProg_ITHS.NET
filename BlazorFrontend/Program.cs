@@ -18,10 +18,11 @@ public class Program
 			.AddHttpClient("APIclient", client =>
 			{
 				client.BaseAddress = new Uri(API_URL);
-				client.Timeout = TimeSpan.FromSeconds(5);
+				client.Timeout = TimeSpan.FromSeconds(120);
 				//client.DefaultRequestHeaders.Authorization = 
 			})
-			.AddTypedClient<ProductService>();
+			.AddTypedClient<ProductService>()
+			.AddTypedClient<CustomerService>();
 
 		var app = builder.Build();
 

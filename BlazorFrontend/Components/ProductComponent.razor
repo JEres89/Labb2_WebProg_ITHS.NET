@@ -1,14 +1,19 @@
 ﻿@using MinimalAPI.DTOs.Responses.Products
 
-<span>Id: <i>@Product.Id</i></span>
-<b>@Product.Name</b>
-<p>@Product.Description</p>
-<span>Categories:<i> @Product.Category</i></span>
-<b>@Product.Price kr</b>
-<b>@Product.Status</b>
-<span>Stock: <b>@Product.Stock</b></span>
+<div class="@DivClass">
+	<span class="d-flex justify-content-between"><b>Id:</b>&nbsp;<i>@Product.Id</i></span>
+	<span class="d-flex justify-content-between"><b>Name:</b>&nbsp;<i>@Product.Name</i></span>
+	<span class="d-flex justify-content-between"><b>Description:</b>&nbsp;<i>@Product.Description</i></span>
+	<span class="d-flex justify-content-between"><b>Categories:</b>&nbsp;<i>@Product.Category</i></span>
+	<span class="d-flex justify-content-between"><b>Price:</b>&nbsp;<i>@Product.Price kr</i></span>
+	<span class="d-flex justify-content-between"><b>Status:</b>&nbsp;<i>@Product.Status</i></span>
+	<span class="d-flex justify-content-between"><b>Stock:</b>&nbsp;<i>@Product.Stock</i></span>
+</div>
 
 @code {
+
+	[Parameter]
+	public string DivClass { get; set; } = "min-w-25 col d-inline-flex flex-column border border-1 border-dark px-2";
 
 	[Parameter]
 	public required ProductResponse Product { get; set; }

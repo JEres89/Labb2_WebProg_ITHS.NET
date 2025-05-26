@@ -128,7 +128,7 @@ public static class OrderMapping
 			Id = order.Id,
 			CustomerId = order.CustomerId,
 			Status = order.Status,
-			Products = products.Length == 0 ? null : products
+			Products = products//.Length == 0 ? null : products
 		};
 	}
 	public static OrderResponse ToSlimOrderResponse(this Order order)

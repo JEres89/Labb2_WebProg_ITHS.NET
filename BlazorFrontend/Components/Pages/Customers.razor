@@ -1,0 +1,130 @@
+﻿@using MinimalAPI.DTOs.Requests.Customers
+@using MinimalAPI.DTOs.Responses.Customers
+@using System.Text.Json
+@using MinimalAPI.DataModels
+
+@page "/customers"
+
+@inject BlazorFrontend.Services.CustomerService CustomerService
+
+<h3>CustomerService Demo</h3>
+<div class="d-grid">
+    <textarea class="sticky-lg-top" rows="5" cols="60" readonly>@resultMessage</textarea>
+
+    <!-- GetCustomersAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col">
+            <button @onclick="GetCustomers">Get Customers</button>
+		</div>
+		<div class="col-10 overflow-scroll" style="flex-wrap: nowrap; display: flex;">
+            @if(customersCollection != null)
+            {
+                foreach(var customer in customersCollection)
+                {
+                    <CustomerComponent Customer="customer" />
+                }
+            }
+        </div>
+    </div>
+
+    <!-- GetCustomerAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="getCustomerId" placeholder="Customer ID" />
+            <button @onclick="GetCustomer" disabled="@getCustomerInvalid">Get Customer</button>
+        </div>
+        <div class="col-1" />
+        @if(customerResult != null)
+        {
+            <CustomerComponent Customer="customerResult" DivClass="col d-inline-flex flex-column border border-1 border-dark" />
+        }
+    </div>
+
+    <!-- CreateCustomerAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <label>
+                * <input type="text" @bind="createCustomerFirstName" placeholder="First name" />
+            </label>
+            <label>
+                * <input type="text" @bind="createCustomerLastName" placeholder="LastName" />
+            </label>
+            <label>
+                * <input type="email" @bind="createCustomerEmail" placeholder="Email" />
+            </label>
+            <label>
+                <input type="text" @bind="createCustomerPhone" placeholder="Phone" />
+            </label>
+            <label>
+                <input type="text" @bind="createCustomerAddress" placeholder="Address" />
+            </label>
+            ( * required )
+            <button @onclick="CreateCustomer" disabled="@createCustomerInvalid">Create Customer</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            @if(createCustomerResult != null)
+            {
+                <CustomerComponent Customer="createCustomerResult" />
+            }
+        </div>
+    </div>
+
+    <!-- UpdateCustomerAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="updateCustomerId" placeholder="Id" />
+            <input type="text" @bind="updateCustomerFirstName" placeholder="FirstName" />
+            <input type="text" @bind="updateCustomerLastName" placeholder="LastName" />
+            <input type="text" @bind="updateCustomerEmail" placeholder="Email" />
+            <input type="number" @bind="updateCustomerPhone" placeholder="Phone" />
+            <input type="number" @bind="updateCustomerAddress" placeholder="Address" />
+            <button @onclick="UpdateCustomer" disabled="@updateCustomerInvalid">Update Customer</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            @if(updateCustomerResult != null)
+            {
+                <CustomerComponent Customer="updateCustomerResult" />
+            }
+        </div>
+    </div>
+
+    <!-- DeleteCustomerAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="deleteCustomerId" placeholder="Customer ID" />
+            <button @onclick="DeleteCustomer" disabled="@deleteCustomerValid">Delete Customer</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            <textarea rows="1" cols="60" readonly>@deleteCustomerResult</textarea>
+        </div>
+    </div>
+
+    <!-- GetCustomerOrdersAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="getCustomerOrdersId" placeholder="Customer ID" />
+            <button @onclick="GetCustomerOrders" disabled="@getCustomerOrdersValid">Get Customer Orders</button>
+        </div>
+        <div class="col-1" />
+        <div class="col overflow-scroll">
+            @if(customerOrdersResult != null)
+            {
+                foreach(var order in customerOrdersResult)
+                {
+                    <OrderComponent Order="order" />
+                }
+            }
+        </div>
+    </div>
+    @* <div class="function-row border border-2 border-dark">
+        <div class="col">
+        </div>
+        <div class="col-1" />
+        <div class="col">
+        </div>
+    </div> *@
+
+</div>

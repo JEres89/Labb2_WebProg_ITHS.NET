@@ -151,7 +151,6 @@ public partial class Products
 	private bool updateProductInvalid => (updateProductId??0) <= 0 || updateProductFields.Count == 0;
 
 	private ProductResponse? updateProductResult;
-	private string? updateProductResultStr;
 
 	/// <summary>
 	/// UpdateProductAsync
@@ -161,10 +160,6 @@ public partial class Products
 	{
 		resultMessage = null;
 		updateProductResult = await ProductService.UpdateProductAsync(updateProductId!.Value, updateProductFields, ResultMessage);
-
-		updateProductResultStr = updateProductResult != null
-		? System.Text.Json.JsonSerializer.Serialize(updateProductResult, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })
-		: "asd";
 	}
 
 	private int? deleteProductId;

@@ -1,3 +1,11 @@
+.min-w-25{
+    min-width: 25%;
+}
+
+button {
+    text-wrap-mode: nowrap;
+}
+
 div {
     padding: 0 !important;
     margin: 0 !important;

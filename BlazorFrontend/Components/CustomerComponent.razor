@@ -1,0 +1,35 @@
+﻿@using MinimalAPI.DTOs.Responses.Customers
+
+<div class="@DivClass">
+
+    <span class="d-flex justify-content-between"><b>Id:</b>&nbsp;<i>@Customer.Id</i></span>
+    <span class="d-flex justify-content-between"><b>Name:</b>&nbsp;<i>@Customer.FirstName @Customer.LastName</i></span>
+    <span class="d-flex justify-content-between"><b>Email:</b>&nbsp;<i>@Customer.Email</i></span>
+    <span class="d-flex justify-content-between"><b>Phone:</b>&nbsp;<i>@Customer.Phone</i></span>
+    <span class="d-flex flex-column justify-content-between">
+        <b>Address:</b>
+        <i>@Customer.Address</i>
+    </span>
+
+    @if(Customer.Orders is not null && Customer.Orders.Any())
+    {
+        <div class="">
+            <b>Orders:</b>
+            <div>
+                @foreach(var order in Customer.Orders)
+                {
+                    <OrderComponent Order="order" DivClass="d-inline-flex flex-column border border-1 border-dark w-100 px-2" />
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public string DivClass { get; set; } = "min-w-25 col d-inline-flex flex-column border border-1 border-dark px-2";
+
+	[Parameter]
+	public required CustomerResponse Customer { get; set; }
+}

@@ -1,0 +1,57 @@
+﻿using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using MinimalAPI.DTOs.Requests.Customers;
+using MinimalAPI.DTOs.Responses.Customers;
+using System.Text.Json;
+using Azure;
+using MinimalAPI.DTOs.Responses.Orders;
+
+namespace BlazorFrontend.Services;
+
+public class CustomerService
+{
+	private const string customersUrl = "api/customers";
+
+	private readonly HttpClient _httpClient;
+	private const string JwtToken = "YOUR_JWT_TOKEN_HERE";
+
+	public CustomerService(HttpClient httpClient)
+	{
+		_httpClient = httpClient;
+	}
+
+	private void AddAuthHeader()
+	{
+		if(_httpClient.DefaultRequestHeaders.Authorization == null)
+		{
+			_httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JwtToken);
+		}
+	}
+
+	private async Task<T?> DoRequest<T>(Func<Task<HttpResponseMessage>> requestMethod, Action<string>? reportCallback = null)
+	{
+		AddAuthHeader();
+		return await Common.DoRequest<T>(requestMethod, reportCallback);
+	}
+
+	public async Task<CustomerGetAllResponse?> GetCustomersAsync(Action<string>? reportCallback = null) =>	
+		await DoRequest<CustomerGetAllResponse>(() => _httpClient.GetAsync(customersUrl), reportCallback);
+
+	public async Task<CustomerResponse?> GetCustomerAsync(int id, Action<string>? reportCallback = null) =>
+		await DoRequest<CustomerResponse>(() => _httpClient.GetAsync( $"{customersUrl}/{id}"), reportCallback);
+
+	public async Task<CustomerResponse?> CreateCustomerAsync(CustomerCreateRequest request, Action<string>? reportCallback = null) =>
+		await DoRequest<CustomerResponse>(() => _httpClient.PostAsJsonAsync(customersUrl, request), reportCallback);
+
+	public async Task<CustomerResponse?> UpdateCustomerAsync(int id, CustomerUpdateRequest request, Action<string>? reportCallback = null) => 
+		await DoRequest<CustomerResponse>(() => _httpClient.PatchAsJsonAsync($"{customersUrl}/{id}", request), reportCallback);
+
+	public async Task<bool> DeleteCustomerAsync(int id, Action<string>? reportCallback = null) =>
+		await DoRequest<bool>(() => _httpClient.DeleteAsync($"{customersUrl}/{id}"), reportCallback);
+
+	public async Task<OrdersResponse?> GetCustomerOrdersAsync(int id, Action<string>? reportCallback = null) =>
+		await DoRequest<OrdersResponse>(() => _httpClient.GetAsync($"{customersUrl}/{id}/orders"), reportCallback);
+}

@@ -21,9 +21,7 @@
             {
                 foreach(var product in productsCollection)
                 {
-                    <div class="col-3 d-inline-flex flex-column border border-1 border-dark">
-                        <ProductComponent Product="product" />
-                    </div>
+                    <ProductComponent Product="product" />
                 }
             }
         </div>
@@ -36,12 +34,10 @@
             <button @onclick="GetProduct" disabled="@getProductInvalid">Get Product</button>
         </div>
         <div class="col-1" />
-        <div class="col d-inline-flex flex-column border border-1 border-dark">
-            @if(productResult != null)
-            {
-                <ProductComponent Product="productResult" />
-            }
-        </div>
+        @if(productResult != null)
+        {
+            <ProductComponent Product="productResult" DivClass="col d-inline-flex flex-column border border-1 border-dark" />
+        }
     </div>
 
     <!-- CreateProductAsync -->
@@ -100,7 +96,6 @@
             {
                 <ProductComponent Product="updateProductResult" />
             }
-            <textarea rows="3" cols="60" readonly>@updateProductResultStr</textarea>
         </div>
     </div>
 
@@ -123,14 +118,12 @@
             <button @onclick="GetProductOrders" disabled="@getProductOrdersValid">Get Product Orders</button>
         </div>
         <div class="col-1" />
-        <div class="col-10 overflow-scroll">
+        <div class="col overflow-scroll">
             @if(productOrdersResult != null)
             {
                 foreach(var product in productOrdersResult)
                 {
-                    <div class="col-3 d-inline-flex flex-column border border-1 border-dark">
-                        <ProductOrderComponent Product="product" />
-                    </div>
+                    <ProductOrderComponent Product="product" />
                 }
             }
         </div>
