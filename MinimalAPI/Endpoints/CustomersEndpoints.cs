@@ -7,33 +7,30 @@ using MinimalAPI.DTOs.Responses.Customers;
 using MinimalAPI.DTOs.Responses.Orders;
 using MinimalAPI.Services.Customers;
 using System.Net;
+using System.Security.Claims;
 
 namespace MinimalAPI.Endpoints;
-
-using GetCustomersResponseTask =
-	Task<Results<
-		Ok<CustomerGetAllResponse>,
-		JsonHttpResult<string>,
-		StatusCodeHttpResult>>;
 
 using CreateCustomerResponseTask =
 	Task<Results<
 		CreatedAtRoute<CustomerResponse>,
 		JsonHttpResult<string>,
 		StatusCodeHttpResult>>;
-
 using CustomerResponseTask =
 	Task<Results<
 		Ok<CustomerResponse>,
 		JsonHttpResult<string>,
 		StatusCodeHttpResult>>;
-
 using DeleteCustomerResponseTask =
 	Task<Results<
 		NoContent,
 		JsonHttpResult<string>,
 		StatusCodeHttpResult>>;
-
+using GetCustomersResponseTask =
+	Task<Results<
+		Ok<CustomerGetAllResponse>,
+		JsonHttpResult<string>,
+		StatusCodeHttpResult>>;
 using GetOrdersResponseTask =
 	Task<Results<
 		Ok<OrdersResponse>,
@@ -42,15 +39,14 @@ using GetOrdersResponseTask =
 
 public static class CustomersEndpoints
 {
-	[HttpGet(Name = "GetCustomers")]
+	// TODO: Add these to all methods since the TypedResult-swagger interactions are broken.
 	[ProducesResponseType((int)HttpStatusCode.NoContent)]
 	[ProducesResponseType((int)HttpStatusCode.Unauthorized)]
 	[ProducesResponseType(typeof(string), (int)HttpStatusCode.ServiceUnavailable)]
 	[ProducesResponseType(typeof(string), (int)HttpStatusCode.InternalServerError)]
-	//[Authorize(Roles = "Admin")]
-	public static async GetCustomersResponseTask GetCustomers(ICustomersActionValidationService validation, WebUser? user)
+	public static async GetCustomersResponseTask GetCustomers(ICustomersActionValidationService validation)
 	{
-		var result = await validation.GetCustomersAsync(user);
+		var result = await validation.GetCustomersAsync();
 		switch(result.ResultCode)
 		{
 			case HttpStatusCode.OK:
@@ -64,9 +60,7 @@ public static class CustomersEndpoints
 		}
 	}
 
-	[HttpPost(Name = "CreateCustomer")]
-	//[Authorize(Roles = "Admin")]
-	public static async CreateCustomerResponseTask CreateCustomer(ICustomersActionValidationService validation, WebUser? user, [FromBody] CustomerCreateRequest request)
+	public static async CreateCustomerResponseTask CreateCustomer(ICustomersActionValidationService validation, ClaimsPrincipal user, [FromBody] CustomerCreateRequest request)
 	{
 		var customer = request.ToCustomer();
 		var result = await validation.CreateCustomerAsync(user, customer);
@@ -88,9 +82,7 @@ public static class CustomersEndpoints
 		}
 	}
 
-	[HttpGet("{id}", Name = "GetCustomer")]
-	//[Authorize]
-	public static async CustomerResponseTask GetCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async CustomerResponseTask GetCustomer(ICustomersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id)
 	{
 		var result = await validation.GetCustomerAsync(user, id);
 		switch(result.ResultCode)
@@ -106,9 +98,7 @@ public static class CustomersEndpoints
 		}
 	}
 
-	[HttpPatch("{id}", Name = "UpdateCustomer")]
-	//[Authorize]
-	public static async CustomerResponseTask UpdateCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] CustomerUpdateRequest request)
+	public static async CustomerResponseTask UpdateCustomer(ICustomersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id, [FromBody] CustomerUpdateRequest request)
 	{
 		var result = await validation.UpdateCustomerAsync(user, id, request);
 
@@ -125,9 +115,7 @@ public static class CustomersEndpoints
 		}
 	}
 
-	[HttpDelete("{id}", Name = "DeleteCustomer")]
-	//[Authorize]
-	public static async DeleteCustomerResponseTask DeleteCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async DeleteCustomerResponseTask DeleteCustomer(ICustomersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id)
 	{
 		var result = await validation.DeleteCustomerAsync(user, id);
 
@@ -144,9 +132,7 @@ public static class CustomersEndpoints
 		}
 	}
 
-	[HttpGet("{id}/orders", Name = "GetCustomerOrders")]
-	//[Authorize]
-	public static async GetOrdersResponseTask GetOrders(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async GetOrdersResponseTask GetOrders(ICustomersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id)
 	{
 		var result = await validation.GetOrdersAsync(user, id);
 

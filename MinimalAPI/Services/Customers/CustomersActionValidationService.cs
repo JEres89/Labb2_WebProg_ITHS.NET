@@ -3,7 +3,9 @@ using Microsoft.EntityFrameworkCore.Internal;
 using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
 using System.Collections.ObjectModel;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Security.Claims;
 using static System.Net.HttpStatusCode;
 
 namespace MinimalAPI.Services.Customers;
@@ -21,12 +23,8 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 		_worker = worker;
 	}
 
-	public async Task<ValidationResult<IEnumerable<Customer>>> GetCustomersAsync(WebUser? user)
+	public async Task<ValidationResult<IEnumerable<Customer>>> GetCustomersAsync()
 	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<IEnumerable<Customer>> { 
-				ResultCode = Unauthorized };
-
 		var canWork = await _worker.BeginWork<IEnumerable<Customer>>(false);
 		if(canWork.ResultCode != Continue)
 			return canWork;
@@ -48,9 +46,9 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 				ResultValue = customers };
 	}
 
-	public async Task<ValidationResult<Customer>> CreateCustomerAsync(WebUser? user, Customer customer)
+	public async Task<ValidationResult<Customer>> CreateCustomerAsync(ClaimsPrincipal user, Customer customer)
 	{
-		if(user == null || user.Role != Role.Admin)
+		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst(JwtRegisteredClaimNames.Email)?.Value == customer.Email))
 			return new ValidationResult<Customer> { 
 				ResultCode = Unauthorized };
 
@@ -85,9 +83,9 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 		}
 	}
 
-	public async Task<ValidationResult<Customer>> GetCustomerAsync(WebUser? user, int id)
+	public async Task<ValidationResult<Customer>> GetCustomerAsync(ClaimsPrincipal user, int id)
 	{
-		if(user == null || (user.CustomerId != id && user.Role != Role.Admin))
+		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst("CustomerId")?.Value == id.ToString()))
 			return new ValidationResult<Customer> { 
 				ResultCode = Unauthorized };
 
@@ -103,9 +101,9 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 			ResultValue = customer };
 	}
 
-	public async Task<ValidationResult<Customer>> UpdateCustomerAsync(WebUser? user, int id, Dictionary<string, string> updates)
+	public async Task<ValidationResult<Customer>> UpdateCustomerAsync(ClaimsPrincipal user, int id, Dictionary<string, string> updates)
 	{
-		if(user == null || user.CustomerId != id && user.Role != Role.Admin)
+		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst("CustomerId")?.Value == id.ToString()))
 			return new ValidationResult<Customer> { 
 				ResultCode = Unauthorized };
 
@@ -151,9 +149,9 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 		}
 	}
 
-	public async Task<ValidationResult<int>> DeleteCustomerAsync(WebUser? user, int id)
+	public async Task<ValidationResult<int>> DeleteCustomerAsync(ClaimsPrincipal user, int id)
 	{
-		if(user == null || user.CustomerId != id && user.Role != Role.Admin)
+		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst("CustomerId")?.Value == id.ToString()))
 			return new ValidationResult<int> { 
 				ResultCode = Unauthorized };
 
@@ -182,9 +180,9 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 		}
 	}
 
-	public async Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync(WebUser? user, int id)
+	public async Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync(ClaimsPrincipal user, int id)
 	{
-		if(user == null || user.CustomerId != id && user.Role != Role.Admin)
+		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst("CustomerId")?.Value == id.ToString()))
 			return new ValidationResult<IEnumerable<Order>> { 
 				ResultCode = Unauthorized };
 

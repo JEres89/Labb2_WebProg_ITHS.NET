@@ -43,12 +43,8 @@ public class ProductsActionValidationService : IProductsActionValidationService
 		}
 	}
 
-	public async Task<ValidationResult<Product>> CreateProductAsync(WebUser? user, Product product)
+	public async Task<ValidationResult<Product>> CreateProductAsync(Product product)
 	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<Product> { 
-				ResultCode = Unauthorized };
-
 		var canWork = await _worker.BeginWork<Product>(true);
 		if(canWork.ResultCode != Continue)
 			return canWork;
@@ -94,12 +90,8 @@ public class ProductsActionValidationService : IProductsActionValidationService
 			ResultValue = product };
 	}
 
-	public async Task<ValidationResult<Product>> UpdateProductAsync(WebUser? user, int id, Dictionary<string, string> updates)
+	public async Task<ValidationResult<Product>> UpdateProductAsync(int id, Dictionary<string, string> updates)
 	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<Product> { 
-				ResultCode = Unauthorized };
-
 		if(updates == null || updates.Count == 0)
 			return new ValidationResult<Product> { 
 				ResultCode = BadRequest, 
@@ -139,12 +131,8 @@ public class ProductsActionValidationService : IProductsActionValidationService
 		}
 	}
 
-	public async Task<ValidationResult<int>> DeleteProductAsync(WebUser? user, int id)
+	public async Task<ValidationResult<int>> DeleteProductAsync(int id)
 	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<int> { 
-				ResultCode = Unauthorized };
-
 		var canWork = await _worker.BeginWork<int>(true);
 		if(canWork.ResultCode != Continue)
 			return canWork;
@@ -170,12 +158,8 @@ public class ProductsActionValidationService : IProductsActionValidationService
 		}
 	}
 
-	public async Task<ValidationResult<IEnumerable<OrderProduct>>> GetProductOrdersAsync(WebUser? user, int id)
+	public async Task<ValidationResult<IEnumerable<OrderProduct>>> GetProductOrdersAsync(int id)
 	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<IEnumerable<OrderProduct>> { 
-				ResultCode = Unauthorized };
-
 		var canWork = await _worker.BeginWork<IEnumerable<OrderProduct>>(false);
 		if(canWork.ResultCode != Continue)
 			return canWork;

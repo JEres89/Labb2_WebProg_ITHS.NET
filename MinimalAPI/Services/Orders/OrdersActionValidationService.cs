@@ -2,6 +2,7 @@ using Microsoft.Data.SqlClient;
 using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
 using System.Net;
+using System.Security.Claims;
 using System.Threading.Channels;
 using static System.Net.HttpStatusCode;
 
@@ -15,12 +16,8 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		_worker = worker;
 	}
 
-	public async Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync(WebUser? user)
+	public async Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync()
 	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<IEnumerable<Order>> { 
-				ResultCode = Unauthorized };
-
 		var canWork = await _worker.BeginWork<IEnumerable<Order>>(false);
 		if(canWork.ResultCode != Continue)
 			return canWork;
@@ -48,9 +45,10 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 	}
 
 	/// <param name="products">[n][2] where each row is [productid, count]</param>
-	public async Task<ValidationResult<Order>> CreateOrderAsync(WebUser? user, Order order, int[][]? products)
+	public async Task<ValidationResult<Order>> CreateOrderAsync(ClaimsPrincipal user, Order order, int[][]? products)
 	{
-		if(user == null || user.CustomerId != order.CustomerId && user.Role != Role.Admin)
+		bool isAdmin = user.IsInRole(Role.Admin.ToString());
+		if(!(isAdmin || user.FindFirst("CustomerId")?.Value == order.CustomerId.ToString()))
 			return new ValidationResult<Order> { 
 				ResultCode = Unauthorized };
 
@@ -63,7 +61,7 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		if(canWork.ResultCode != Continue)
 			return canWork;
 
-		if(user.Role == Role.Admin)
+		if(isAdmin)
 		{
 			if(!(await _worker.Customers.VerifyCustomer(order.CustomerId)))
 				return new ValidationResult<Order> { 
@@ -108,14 +106,10 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		}
 	}
 
-	public async Task<ValidationResult<Order>> GetOrderAsync(WebUser? user, int orderId) => await GetOrderAsync(user, orderId, false);
+	public async Task<ValidationResult<Order>> GetOrderAsync(ClaimsPrincipal user, int orderId) => await GetOrderAsync(user, orderId, false);
 
-	private async Task<ValidationResult<Order>> GetOrderAsync(WebUser? user, int orderId, bool withProducts)
+	private async Task<ValidationResult<Order>> GetOrderAsync(ClaimsPrincipal user, int orderId, bool withProducts)
 	{
-		if(user == null)
-			return new ValidationResult<Order> { 
-				ResultCode = Unauthorized };
-
 		var canWork = await _worker.BeginWork<Order>(false);
 		if(canWork.ResultCode != Continue)
 			return canWork;
@@ -123,12 +117,12 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		var repo = _worker.Orders;
 
 		Order? order;
-		if(user.Role == Role.Admin)
+		if(user.IsInRole(Role.Admin.ToString()))
 			order = await repo.GetOrderAsync(orderId, withProducts);
 		else
 		{
 			order = await repo.GetOrderAsync(orderId);
-			if(order != null && order.CustomerId == user.CustomerId)
+			if(order != null && order.CustomerId.ToString() == user.FindFirst("CustomerId")?.Value)
 			{
 				if(withProducts)
 					order = await repo.GetOrderAsync(orderId, true);
@@ -148,7 +142,7 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 			ResultValue = order };
 	}
 
-	public async Task<ValidationResult<Order>> UpdateOrderAsync(WebUser? user, int orderId, OrderStatus status)
+	public async Task<ValidationResult<Order>> UpdateOrderAsync(ClaimsPrincipal user, int orderId, OrderStatus status)
 	{
 		if(user == null)
 			return new ValidationResult<Order> { 
@@ -161,9 +155,11 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		var repo = _worker.Orders;
 		var order = await repo.GetOrderAsync(orderId);
 
+		bool isAdmin = user.IsInRole(Role.Admin.ToString());
+
 		if(order == null)
 		{
-			if(user.Role == Role.Admin)
+			if(isAdmin)
 				return new ValidationResult<Order> { 
 					ResultCode = NotFound,
 					ErrorMessage = $"Order with id {orderId} could not be found." };
@@ -171,7 +167,7 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 			return new ValidationResult<Order> { 
 				ResultCode = Unauthorized };
 		}
-		else if(user.Role != Role.Admin && order.CustomerId != user.CustomerId)
+		else if(!isAdmin && user.FindFirst("CustomerId")?.Value != order.CustomerId.ToString())
 			return new ValidationResult<Order> { 
 				ResultCode = Unauthorized };
 
@@ -199,12 +195,8 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		}
 	}
 
-	public async Task<ValidationResult<int>> DeleteOrderAsync(WebUser? user, int orderId)
+	public async Task<ValidationResult<int>> DeleteOrderAsync(ClaimsPrincipal user, int orderId)
 	{
-		if(user == null)
-			return new ValidationResult<int> { 
-				ResultCode = Unauthorized };
-
 		var canWork = await _worker.BeginWork<int>(true);
 		if(canWork.ResultCode != Continue)
 			return canWork;
@@ -214,12 +206,12 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 			var repo = _worker.Orders;
 			bool success = false;
 
-			if(user.Role == Role.Admin)
+			if(user.IsInRole(Role.Admin.ToString()))
 				success = await repo.DeleteOrderAsync(orderId);
 			else
 			{
 				var order = await repo.GetOrderAsync(orderId);
-				if(order != null && order.CustomerId == user.CustomerId)
+				if(order != null && user.FindFirst("CustomerId")?.Value == order.CustomerId.ToString())
 					success = await repo.DeleteOrderAsync(orderId);
 				else
 					return new ValidationResult<int> { 
@@ -243,22 +235,18 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		}
 	}
 
-	public async Task<ValidationResult<Order>> GetProductsAsync(WebUser? user, int orderId)
+	public async Task<ValidationResult<Order>> GetProductsAsync(ClaimsPrincipal user, int orderId)
 	{
 		return await GetOrderAsync(user, orderId, true);
 	}
 
 	/// <param name="setProducts">[n][2] where each row is [productid, count]</param>
-	public async Task<ValidationResult<Order>> UpdateProductsAsync(WebUser? user, int orderId, IEnumerable<int[]> setProducts, bool replace = false)
+	public async Task<ValidationResult<Order>> UpdateProductsAsync(ClaimsPrincipal user, int orderId, IEnumerable<int[]> setProducts, bool replace = false)
 	{
 		if(!setProducts.Any())
 			return new ValidationResult<Order> {
 				ResultCode = BadRequest,
 				ErrorMessage = "Request was empty." };
-
-		if(user == null)
-			return new ValidationResult<Order> { 
-				ResultCode = Unauthorized };
 
 		var canWork = await _worker.BeginWork<Order>(true);
 		if(canWork.ResultCode != Continue)
@@ -267,9 +255,10 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		var repo = _worker.Orders;
 		var order = await repo.GetOrderAsync(orderId);
 
+		bool isAdmin = user.IsInRole(Role.Admin.ToString());
 		if(order == null)
 		{
-			if(user.Role == Role.Admin)
+			if(isAdmin)
 				return new ValidationResult<Order> { 
 					ResultCode = NotFound,
 					ErrorMessage = $"Order with id {orderId} could not be found." };
@@ -277,7 +266,7 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 			return new ValidationResult<Order> { 
 				ResultCode = Unauthorized };
 		}
-		else if(user.Role != Role.Admin && order.CustomerId != user.CustomerId)
+		else if(!isAdmin && user.FindFirst("CustomerId")?.Value != order.CustomerId.ToString())
 			return new ValidationResult<Order> { 
 				ResultCode = Unauthorized };
 		else

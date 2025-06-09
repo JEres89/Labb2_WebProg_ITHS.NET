@@ -2,6 +2,7 @@
 using MinimalAPI.DataModels;
 using System.Linq.Expressions;
 using System.Net;
+using System.Security.Claims;
 
 namespace MinimalAPI.Services.Orders;
 
@@ -28,11 +29,11 @@ public interface IOrdersRepository : IDisposable
 
 public interface IOrdersActionValidationService
 {
-	Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync(WebUser? user);
-	Task<ValidationResult<Order>> CreateOrderAsync(WebUser? user, Order order, int[][]? products);
-	Task<ValidationResult<Order>> GetOrderAsync(WebUser? user, int orderId);
-	Task<ValidationResult<Order>> UpdateOrderAsync(WebUser? user, int orderId, OrderStatus status);
-	Task<ValidationResult<int>> DeleteOrderAsync(WebUser? user, int orderId);
-	Task<ValidationResult<Order>> GetProductsAsync(WebUser? user, int orderId);
-	Task<ValidationResult<Order>> UpdateProductsAsync(WebUser? user, int orderId, IEnumerable<int[]> setProducts, bool replace = false);
+	Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync();
+	Task<ValidationResult<Order>> CreateOrderAsync(ClaimsPrincipal user, Order order, int[][]? products);
+	Task<ValidationResult<Order>> GetOrderAsync(ClaimsPrincipal user, int orderId);
+	Task<ValidationResult<Order>> UpdateOrderAsync(ClaimsPrincipal user, int orderId, OrderStatus status);
+	Task<ValidationResult<int>> DeleteOrderAsync(ClaimsPrincipal user, int orderId);
+	Task<ValidationResult<Order>> GetProductsAsync(ClaimsPrincipal user, int orderId);
+	Task<ValidationResult<Order>> UpdateProductsAsync(ClaimsPrincipal user, int orderId, IEnumerable<int[]> setProducts, bool replace = false);
 }

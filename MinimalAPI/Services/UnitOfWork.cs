@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using MinimalAPI.Services.Auth;
 using MinimalAPI.Services.Customers;
 using MinimalAPI.Services.Database;
 using MinimalAPI.Services.Orders;
@@ -23,11 +24,14 @@ public class UnitOfWork : IUnitOfWork
 	public ICustomersRepository Customers => _customers ??= new CustomersRepository(_context);
 	public IOrdersRepository Orders => _orders ??= new OrdersRepository(_context); 
 	public IProductsRepository Products => _products ??= new ProductsRepository(_context);
+	public IAuthRepository Auth => _authRepository ??= new AuthRepository(_context);
+
 
 	private readonly ApiContext _context;
-	private ICustomersRepository? _customers;
-	private IOrdersRepository? _orders;
-	private IProductsRepository? _products;
+	private CustomersRepository? _customers;
+	private OrdersRepository? _orders;
+	private ProductsRepository? _products;
+	private AuthRepository? _authRepository;
 
 	//public async Task<bool> BeginWork() => await _context.CanConnectAsync();
 
@@ -114,6 +118,7 @@ public class UnitOfWork : IUnitOfWork
 				_customers?.Dispose();
 				_orders?.Dispose();
 				_products?.Dispose();
+				_authRepository?.Dispose();
 				_transaction?.Dispose();
 			}
 

@@ -9,6 +9,7 @@ using MinimalAPI.DTOs.Responses.Orders;
 using MinimalAPI.Services;
 using MinimalAPI.Services.Orders;
 using System.Net;
+using System.Security.Claims;
 
 namespace MinimalAPI.Endpoints;
 
@@ -36,7 +37,7 @@ using DeleteResponseTask =
 		NoContent,
 		JsonHttpResult<string>,
 		StatusCodeHttpResult>>;
-
+	
 using GetProductsResponseTask =
 	Task<Results<
 		Ok<IEnumerable<OrderProductResponse>>,
@@ -51,11 +52,9 @@ using ProductsChangeResponseTask =
 
 public static class OrdersEndpoints
 {
-	[HttpGet(Name = "GetOrders")]
-	//[Authorize(Roles = "Admin")]
-	public static async GetOrdersResponseTask GetOrders(IOrdersActionValidationService validation, WebUser? user)
+	public static async GetOrdersResponseTask GetOrders(IOrdersActionValidationService validation)
 	{
-		var result = await validation.GetOrdersAsync(user);
+		var result = await validation.GetOrdersAsync();
 		switch(result.ResultCode)
 		{
 			case HttpStatusCode.OK:
@@ -69,9 +68,7 @@ public static class OrdersEndpoints
 		}
 	}
 
-	[HttpPost(Name = "CreateOrder")]
-	//[Authorize]
-	public static async CreateResponseTask CreateOrder(IOrdersActionValidationService validation, WebUser? user, [FromBody]OrderCreateRequest request, HttpContext context)
+	public static async CreateResponseTask CreateOrder(IOrdersActionValidationService validation, ClaimsPrincipal user, [FromBody] OrderCreateRequest request, HttpContext context)
 	{
 		var order = request.ToOrder();
 		var result = await validation.CreateOrderAsync(user, order, request.Products);
@@ -88,7 +85,7 @@ public static class OrdersEndpoints
 			case HttpStatusCode.Conflict:
 				context.Response.Headers.Append("X-Conflict-Message", result.ErrorMessage);
 				return TypedResults.Json(
-					data: result.ResultValue, 
+					data: result.ResultValue,
 					statusCode: (int)HttpStatusCode.Conflict);
 
 			default:
@@ -99,9 +96,7 @@ public static class OrdersEndpoints
 		}
 	}
 
-	[HttpGet("{id}", Name = "GetOrder")]
-	//[Authorize]
-	public static async OrderResponseTask GetOrder(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async OrderResponseTask GetOrder(IOrdersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id)
 	{
 		var result = await validation.GetOrderAsync(user, id);
 		switch(result.ResultCode)
@@ -117,9 +112,7 @@ public static class OrdersEndpoints
 		}
 	}
 
-	[HttpPatch("{id}", Name = "UpdateOrder")]
-	//[Authorize]
-	public static async OrderResponseTask UpdateOrder(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] OrderUpdateRequest request)
+	public static async OrderResponseTask UpdateOrder(IOrdersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id, [FromBody] OrderUpdateRequest request)
 	{
 		var result = await validation.UpdateOrderAsync(user, id, request.Status);
 
@@ -136,9 +129,7 @@ public static class OrdersEndpoints
 		}
 	}
 
-	[HttpDelete("{id}", Name = "DeleteOrder")]
-	//[Authorize]
-	public static async DeleteResponseTask DeleteOrder(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async DeleteResponseTask DeleteOrder(IOrdersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id)
 	{
 		var result = await validation.DeleteOrderAsync(user, id);
 
@@ -155,9 +146,7 @@ public static class OrdersEndpoints
 		}
 	}
 
-	[HttpGet("{id}/products", Name = "GetOrderProducts")]
-	//[Authorize]
-	public static async GetProductsResponseTask GetProducts(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async GetProductsResponseTask GetProducts(IOrdersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id)
 	{
 		var result = await validation.GetProductsAsync(user, id);
 
@@ -174,17 +163,13 @@ public static class OrdersEndpoints
 		}
 	}
 
-	[HttpPatch("{id}/products", Name = "SetProducts")]
-	//[Authorize]
-	public static async ProductsChangeResponseTask SetProducts(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] OrderProductsChangeRequest request)
+	public static async ProductsChangeResponseTask SetProducts(IOrdersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id, [FromBody] OrderProductsChangeRequest request)
 		=> await UpdateProducts(validation, user, id, request, false);
 
-	[HttpPut("{id}/products", Name = "ReplaceProducts")]
-	//[Authorize]
-	public static async ProductsChangeResponseTask ReplaceProducts(IOrdersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] OrderProductsChangeRequest request) 
+	public static async ProductsChangeResponseTask ReplaceProducts(IOrdersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id, [FromBody] OrderProductsChangeRequest request)
 		=> await UpdateProducts(validation, user, id, request, true);
 
-	private static async ProductsChangeResponseTask UpdateProducts(IOrdersActionValidationService validation, WebUser? user, int id, OrderProductsChangeRequest request, bool replace)
+	private static async ProductsChangeResponseTask UpdateProducts(IOrdersActionValidationService validation, ClaimsPrincipal user, int id, OrderProductsChangeRequest request, bool replace)
 	{
 		var result = replace
 			? await validation.UpdateProductsAsync(user, id, request.Products, true)

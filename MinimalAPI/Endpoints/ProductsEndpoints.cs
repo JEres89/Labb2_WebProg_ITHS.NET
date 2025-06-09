@@ -42,7 +42,6 @@ using GetOrdersResponseTask =
 
 public static class ProductsEndpoints
 {
-	[HttpGet(Name = "GetProducts")]
 	public static async GetProductsResponseTask GetProducts(IProductsActionValidationService validation)
 	{
 		var result = await validation.GetProductsAsync();
@@ -59,12 +58,10 @@ public static class ProductsEndpoints
 		}
 	}
 
-	[HttpPost(Name = "CreateProduct")]
-	//[Authorize(Roles = "Admin")]
-	public static async CreateProductResponseTask CreateProduct(IProductsActionValidationService validation, WebUser? user, [FromBody] ProductCreateRequest request)
+	public static async CreateProductResponseTask CreateProduct(IProductsActionValidationService validation, [FromBody] ProductCreateRequest request)
 	{
 		var product = request.ToProduct();
-		var result = await validation.CreateProductAsync(user, product);
+		var result = await validation.CreateProductAsync(product);
 		product = result.ResultValue;
 		switch(result.ResultCode)
 		{
@@ -83,7 +80,6 @@ public static class ProductsEndpoints
 		}
 	}
 
-	[HttpGet("{id}", Name = "GetProduct")]
 	public static async ProductResponseTask GetProduct(IProductsActionValidationService validation, [FromRoute] int id)
 	{
 		var result = await validation.GetProductAsync(id);
@@ -100,11 +96,9 @@ public static class ProductsEndpoints
 		}
 	}
 
-	[HttpPatch("{id}", Name = "UpdateProduct")]
-	//[Authorize(Roles = "Admin")]
-	public static async ProductResponseTask UpdateProduct(IProductsActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] ProductUpdateRequest request)
+	public static async ProductResponseTask UpdateProduct(IProductsActionValidationService validation, [FromRoute] int id, [FromBody] ProductUpdateRequest request)
 	{
-		var result = await validation.UpdateProductAsync(user, id, request);
+		var result = await validation.UpdateProductAsync(id, request);
 
 		switch(result.ResultCode)
 		{
@@ -119,11 +113,9 @@ public static class ProductsEndpoints
 		}
 	}
 
-	[HttpDelete("{id}", Name = "DeleteProduct")]
-	//[Authorize(Roles = "Admin")]
-	public static async DeleteProductResponseTask DeleteProduct(IProductsActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async DeleteProductResponseTask DeleteProduct(IProductsActionValidationService validation, [FromRoute] int id)
 	{
-		var result = await validation.DeleteProductAsync(user, id);
+		var result = await validation.DeleteProductAsync(id);
 
 		switch(result.ResultCode)
 		{
@@ -136,13 +128,11 @@ public static class ProductsEndpoints
 
 				return TypedResults.Json(result.ErrorMessage, statusCode: (int)result.ResultCode);
 		}
-	}	
+	}
 
-	[HttpGet("{id}/orders", Name = "GetProductOrders")]
-	//[Authorize(Roles = "Admin")]
-	public static async GetOrdersResponseTask GetOrders(IProductsActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async GetOrdersResponseTask GetOrders(IProductsActionValidationService validation, [FromRoute] int id)
 	{
-		var result = await validation.GetProductOrdersAsync(user, id);
+		var result = await validation.GetProductOrdersAsync(id);
 
 		switch(result.ResultCode)
 		{

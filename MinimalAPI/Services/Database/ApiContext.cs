@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
 
 namespace MinimalAPI.Services.Database;
@@ -9,10 +10,8 @@ public class ApiContext : DbContext
 	{
 
 	}
-	public DbSet<Customer> Customers { 
-		get; 
-		set; 
-	}
+	public DbSet<WebUser> Users { get; set; }
+	public DbSet<Customer> Customers { get; set; }
 	public DbSet<Order> Orders { get; set; }
 	public DbSet<OrderProduct> OrderProducts { get; set; }
 	public DbSet<Product> Products { get; set; }
@@ -24,6 +23,11 @@ public class ApiContext : DbContext
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
+		modelBuilder.Entity<WebUser>().HasKey(u => u.Email);
+		modelBuilder.Entity<WebUser>().Property(u => u.Email).IsRequired().HasMaxLength(256);
+		modelBuilder.Entity<WebUser>().Property(u => u.PasswordHash).IsRequired();
+		modelBuilder.Entity<WebUser>().HasOne(u => u.Customer).WithOne().HasForeignKey<WebUser>(u => u.CustomerId).OnDelete(DeleteBehavior.SetNull);
+
 		modelBuilder.Entity<Customer>().HasMany(c => c.Orders).WithOne(o => o.Customer).HasForeignKey(o => o.CustomerId);
 
 		modelBuilder.Entity<Order>().HasMany(o => o.Products).WithOne(op => op.Order).HasForeignKey(op => op.OrderId);

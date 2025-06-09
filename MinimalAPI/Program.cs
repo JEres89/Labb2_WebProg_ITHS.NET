@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MinimalAPI.Auth;
 using MinimalAPI.Endpoints;
 using MinimalAPI.Services;
+using MinimalAPI.Services.Auth;
 using MinimalAPI.Services.Customers;
 using MinimalAPI.Services.Database;
 using MinimalAPI.Services.Orders;
@@ -12,31 +15,66 @@ namespace MinimalAPI;
 
 public class Program
 {
-	private const string ConnectionString =
-		"Server=localhost;" +
-		"Database=WebbLabb2;" +
-		"Trusted_Connection=True;" +
-		"TrustServerCertificate=True";
 	public static void Main(string[] args)
 	{
 		var builder = WebApplication.CreateBuilder(args);
 
 		// Add services to the container.
-		builder.Services.AddAuthorization();
+		builder.Services
+			.AddAuthentication(s =>
+			{
+				s.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+				s.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+				s.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+			})
+			.AddJwtBearer(j =>
+			{
+				j.TokenValidationParameters = new TokenValidationParameters {
+					ValidIssuer = "JensEresund",
+					ValidAudience = "ApiConsumers",
+					IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(SecureSecretVault.GetJwtSecret())),
+					ValidateIssuer = true,
+					ValidateAudience = true,
+					ValidateLifetime = true,
+					ValidateIssuerSigningKey = true,
+				};
+			});
+
+		builder.Services
+			.AddAuthorizationBuilder()
+			.AddPolicy("Administrator", policy =>
+			{
+				policy.RequireRole(Role.Admin.ToString());
+			});
+			//.AddPolicy("OwnerOrAdmin", policy =>
+			//{
+			//	policy.RequireRole(Role.User.ToString(), Role.Admin.ToString());
+			//	policy.RequireAssertion(context =>
+			//	{
+			//		var user = context.User;
+			//		if(user.IsInRole(Role.Admin.ToString()))
+			//			return true;
+			//		if(user.IsInRole(Role.User.ToString()) && user.HasClaim(c => c.Type == "CustomerId"))
+			//		{
+			//			var customerId = int.Parse(user.FindFirst("CustomerId")!.Value);
+			//			return context.Resource is int hasCustomerId && hasCustomerId == customerId;
+			//		}
+			//		return false;
+			//	});
+			//});
+		#if DEBUG
+		builder.Services
+			.AddScoped<WebUser>(_ => new WebUser { Email = "Asd", Role = Role.Admin });
+		#endif
 
 		builder.Services
 			.AddScoped<IUnitOfWork, UnitOfWork>()
-			//.AddScoped<ICustomersRepository, CustomersRepository>()
-			//.AddScoped<IOrdersRepository, OrdersRepository>()
-			//.AddScoped<IProductsRepository, ProductsRepository>()
-			.AddScoped<WebUser>(_ => new WebUser { UserName = "Asd", Role = Role.Admin });
-
-		builder.Services
 			.AddTransient<ICustomersActionValidationService, CustomersActionValidationService>()
 			.AddTransient<IProductsActionValidationService, ProductsActionValidationService>()
-			.AddTransient<IOrdersActionValidationService, OrdersActionValidationService>();
+			.AddTransient<IOrdersActionValidationService, OrdersActionValidationService>()
+			.AddTransient<IAuthActionValidationService, AuthActionValidationService>();
 
-		builder.Services.AddDbContext<ApiContext>(options => options.UseSqlServer(ConnectionString));
+		builder.Services.AddDbContext<ApiContext>(options => options.UseSqlServer(SecureSecretVault.GetConnectionString()));
 
 		// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 		builder.Services.AddEndpointsApiExplorer();
@@ -52,7 +90,6 @@ public class Program
 
 		var app = builder.Build();
 
-		app.MapApiEndpoints();
 		// Configure the HTTP request pipeline.
 		if(app.Environment.IsDevelopment())
 		{
@@ -62,6 +99,10 @@ public class Program
 
 		app.UseHttpsRedirection();
 
+		app.UseAuthentication();
+		app.UseAuthorization();
+
+		app.MapApiEndpoints();
 		app.Run();
 	}
 }
