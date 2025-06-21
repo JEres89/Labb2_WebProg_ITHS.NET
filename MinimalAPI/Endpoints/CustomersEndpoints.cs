@@ -28,12 +28,12 @@ using DeleteCustomerResponseTask =
 		StatusCodeHttpResult>>;
 using GetCustomersResponseTask =
 	Task<Results<
-		Ok<CustomerGetAllResponse>,
+		Ok<CustomerCollectionResponse>,
 		JsonHttpResult<string>,
 		StatusCodeHttpResult>>;
 using GetOrdersResponseTask =
 	Task<Results<
-		Ok<OrdersResponse>,
+		Ok<OrderCollectionResponse>,
 		JsonHttpResult<string>,
 		StatusCodeHttpResult>>;
 
@@ -139,7 +139,7 @@ public static class CustomersEndpoints
 		switch(result.ResultCode)
 		{
 			case HttpStatusCode.OK:
-				return TypedResults.Ok(result.ResultValue!.ToOrdersResponse());
+				return TypedResults.Ok(result.ResultValue!.ToOrderCollectionResponse());
 
 			default:
 				if(string.IsNullOrEmpty(result.ErrorMessage))

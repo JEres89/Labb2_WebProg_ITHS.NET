@@ -10,19 +10,30 @@ public class Program
 		var builder = WebApplication.CreateBuilder(args);
 
 		// Add services to the container.
-		builder.Services.AddRazorComponents()
+		builder.Services
+			.AddRazorComponents()
 			.AddInteractiveServerComponents();
 
 		builder.Services
 			.AddScoped<ProductService>()
-			.AddHttpClient("APIclient", client =>
+			.AddScoped<AuthService>()
+			.AddScoped<CustomerService>()
+			.AddScoped<OrderService>();
+
+		builder.Services.AddHttpClient("APIclient", client =>
 			{
 				client.BaseAddress = new Uri(API_URL);
 				client.Timeout = TimeSpan.FromSeconds(120);
-				//client.DefaultRequestHeaders.Authorization = 
-			})
-			.AddTypedClient<ProductService>()
-			.AddTypedClient<CustomerService>();
+			});
+			//.AddTypedClient<ProductService>()
+			//.AddTypedClient<AuthService>()
+			//.AddTypedClient<CustomerService>();
+
+		builder.Services.AddScoped(sp =>
+		{
+			var factory = sp.GetRequiredService<IHttpClientFactory>();
+			return factory.CreateClient("APIclient");
+		});
 
 		var app = builder.Build();
 

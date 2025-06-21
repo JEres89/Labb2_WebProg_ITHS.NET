@@ -38,39 +38,42 @@ public class UnitOfWork : IUnitOfWork
 	public async Task<ValidationResult<T>> BeginWork<T>(bool writing)
 	{
 		if(!await _context.CanConnectAsync())
-		{
 			return new ValidationResult<T> {
 				ResultCode = ServiceUnavailable, 
-				ErrorMessage = "Database connection failed." };
-		}
+				ErrorMessage = "Database connection failed." 
+			};
+
 		if(!writing || _transaction != null)
-		{
 			return new ValidationResult<T> { 
-				ResultCode = Continue };
-		}
+				ResultCode = Continue 
+			};
+
 		try
 		{
 			_transaction = await _context.Database.BeginTransactionAsync();
 			if(_transaction == null)
 				throw new Exception("Transaction could not be initiated.");
+
 			return new ValidationResult<T> { 
-				ResultCode = Continue };
+				ResultCode = Continue 
+			};
 		}
 		catch(Exception e)
 		{
 			return new ValidationResult<T> { 
-				ResultCode = InternalServerError, ErrorMessage = e.Message };
+				ResultCode = InternalServerError, ErrorMessage = e.Message 
+			};
 		}
 	}
 
 	public async Task<ValidationResult<T>> SaveChangesAsync<T>()
 	{
 		if(_transaction == null)
-		{
 			return new ValidationResult<T> { 
 				ResultCode = Forbidden, 
-				ErrorMessage = "Transaction has not been initiated." };
-		}
+				ErrorMessage = "Transaction has not been initiated." 
+			};
+
 		try
 		{
 			var changes = await _context.SaveChangesAsync();
@@ -78,23 +81,25 @@ public class UnitOfWork : IUnitOfWork
 			Dispose();
 			if(changes > 0)
 				return new ValidationResult<T> {
-					ResultCode = OK };
+					ResultCode = OK 
+				};
 
 			else
 				return new ValidationResult<T> { 
 					ResultCode =  BadRequest, 
-					ErrorMessage = "No changes were saved." };
+					ErrorMessage = "No changes were saved." 
+				};
 		}
 		catch(Exception e)
 		{
 			await RollbackAsync();
 			if(e.InnerException is SqlException se)
-			{
 				throw se;
-			}
+
 			return new ValidationResult<T> { 
 				ResultCode = InternalServerError, 
-				ErrorMessage = $"Transaction could not be completed.\n{e.Message}" };
+				ErrorMessage = $"Transaction could not be completed.\n{e.Message}" 
+			};
 		}
 	}
 

@@ -1,12 +1,5 @@
-﻿using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using MinimalAPI.DTOs.Requests.Products;
+﻿using MinimalAPI.DTOs.Requests.Products;
 using MinimalAPI.DTOs.Responses.Products;
-using System.Text.Json;
-using Azure;
 
 namespace BlazorFrontend.Services;
 
@@ -15,29 +8,21 @@ public class ProductService
 	private const string productsUrl = "api/products";
 
 	private readonly HttpClient _httpClient;
-	private const string JwtToken = "YOUR_JWT_TOKEN_HERE";
 
 	public ProductService(HttpClient httpClient)
 	{
 		_httpClient = httpClient;
-	}
-
-	private void AddAuthHeader()
-	{
-		if(_httpClient.DefaultRequestHeaders.Authorization == null)
-		{
-			_httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", JwtToken);
-		}
+		//_httpClient.DefaultRequestHeaders.Add("ProductServiceWasHere", "qweqwe");
 	}
 
 	private async Task<T?> DoRequest<T>(Func<Task<HttpResponseMessage>> requestMethod, Action<string>? reportCallback = null)
 	{
-		AddAuthHeader();
+		//AddAuthHeader();
 		return await Common.DoRequest<T>(requestMethod, reportCallback);
 	}
 
-	public async Task<ProductGetAllResponse?> GetProductsAsync(Action<string>? reportCallback = null) =>	
-		await DoRequest<ProductGetAllResponse>(() => _httpClient.GetAsync(productsUrl), reportCallback);
+	public async Task<ProductCollectionResponse?> GetProductsAsync(Action<string>? reportCallback = null) =>	
+		await DoRequest<ProductCollectionResponse>(() => _httpClient.GetAsync(productsUrl), reportCallback);
 
 	public async Task<ProductResponse?> GetProductAsync(int id, Action<string>? reportCallback = null) =>
 		await DoRequest<ProductResponse>(() => _httpClient.GetAsync( $"{productsUrl}/{id}"), reportCallback);

@@ -1,5 +1,5 @@
-﻿using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
+﻿using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 
 namespace MinimalAPI.Auth;
@@ -8,20 +8,21 @@ public class TokenGenerator
 {
 	public static string GenerateToken(string secret, WebUser user, int expirationMinutes = 60)
 	{
-		var tokenHandler = new JwtSecurityTokenHandler();
+		var tokenHandler = new JsonWebTokenHandler();
+
 		var key = new System.Text.UTF8Encoding().GetBytes(secret);
 
 		var claims = new List<Claim>
 		{
 			new Claim(JwtRegisteredClaimNames.Sub, user.Email),
 			new Claim(JwtRegisteredClaimNames.Email, user.Email),
-			new Claim(ClaimTypes.Role, user.Role.ToString())
+			new Claim("role", user.Role.ToString())
 		};
 		if(user.Role == Role.User)
 		{
 			claims.Add(new Claim("CustomerId", user.CustomerId?.ToString()??string.Empty, "int"));
 		}
-
+		
 		var tokenDescriptor = new SecurityTokenDescriptor {
 			Subject = new ClaimsIdentity(claims),
 			Issuer = "JensEresund",
@@ -32,7 +33,6 @@ public class TokenGenerator
 				SecurityAlgorithms.HmacSha256Signature)
 		};
 
-		var token = tokenHandler.CreateToken(tokenDescriptor);
-		return tokenHandler.WriteToken(token);
+		return tokenHandler.CreateToken(tokenDescriptor);
 	}
 }

@@ -15,14 +15,14 @@ namespace MinimalAPI.Endpoints;
 
 using GetOrdersResponseTask = 
 	Task<Results<
-		Ok<OrdersResponse>, 
+		Ok<OrderCollectionResponse>, 
 		JsonHttpResult<string>, 
 		StatusCodeHttpResult>>;
 
 using CreateResponseTask =
 	Task<Results<
 		CreatedAtRoute<OrderResponse>,
-		JsonHttpResult<Order>,
+		JsonHttpResult<OrderResponse>,
 		JsonHttpResult<string>,
 		StatusCodeHttpResult>>;
 
@@ -58,7 +58,7 @@ public static class OrdersEndpoints
 		switch(result.ResultCode)
 		{
 			case HttpStatusCode.OK:
-				return TypedResults.Ok(result.ResultValue!.ToOrdersResponse());
+				return TypedResults.Ok(result.ResultValue!.ToOrderCollectionResponse());
 
 			default:
 				if(string.IsNullOrEmpty(result.ErrorMessage))
@@ -85,7 +85,7 @@ public static class OrdersEndpoints
 			case HttpStatusCode.Conflict:
 				context.Response.Headers.Append("X-Conflict-Message", result.ErrorMessage);
 				return TypedResults.Json(
-					data: result.ResultValue,
+					data: order!.ToOrderResponse(),
 					statusCode: (int)HttpStatusCode.Conflict);
 
 			default:

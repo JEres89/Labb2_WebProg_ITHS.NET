@@ -12,7 +12,8 @@ public static class Common
 			response = await requestMethod();
 			if(response.IsSuccessStatusCode)
 			{
-				if(typeof(T) == typeof(bool))
+				Type targetType = typeof(T);
+				if(targetType == typeof(bool))
 				{
 					// If T is bool, we assume a successful response means true
 					// and any failure means false, so we can return true directly.
@@ -20,11 +21,19 @@ public static class Common
 				}
 				else if(response.StatusCode == System.Net.HttpStatusCode.NoContent)
 				{
-					if(typeof(IEnumerable).IsAssignableFrom(typeof(T)))
+					if(typeof(IEnumerable).IsAssignableFrom(targetType))
 					{
 						// If T is IEnumerable, we return an empty collection
-						var oType = typeof(T).GenericTypeArguments[0];
-						return (T)(object)Array.CreateInstance(oType, 0);
+						if(targetType.GenericTypeArguments.Length > 0) 
+						{
+							// If T is IEnumerable<T>, we create an empty array of T
+							// This works for arrays, lists, etc.
+							var oType = targetType.GenericTypeArguments[0];
+							return (T)(object)Array.CreateInstance(oType, 0);
+						}
+						// If T is IEnumerable but not IEnumerable<T>, we return an empty list
+						var ctor = targetType.GetConstructor(Type.EmptyTypes);
+						return ctor != null ? (T)ctor.Invoke(null)! : default;
 					}
 					else
 					{

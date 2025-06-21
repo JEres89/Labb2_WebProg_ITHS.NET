@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MinimalAPI.Auth;
@@ -10,6 +12,7 @@ using MinimalAPI.Services.Customers;
 using MinimalAPI.Services.Database;
 using MinimalAPI.Services.Orders;
 using MinimalAPI.Services.Products;
+using System.Reflection.Emit;
 
 namespace MinimalAPI;
 
@@ -90,6 +93,9 @@ public class Program
 
 		var app = builder.Build();
 
+		// Initialization logic here
+		EnsureAdminUserExists(app);
+
 		// Configure the HTTP request pipeline.
 		if(app.Environment.IsDevelopment())
 		{
@@ -104,5 +110,59 @@ public class Program
 
 		app.MapApiEndpoints();
 		app.Run();
+	}
+
+	private static void EnsureAdminUserExists(WebApplication app)
+	{
+		var configuration = app.Configuration;
+		var adminEmail = configuration.GetValue<string>("adminEmail");
+		var adminPassword = configuration.GetValue<string>("adminPassword");
+		
+		using(var scope = app.Services.CreateScope())
+		using(var context = scope.ServiceProvider.GetRequiredService<ApiContext>())
+		{
+			context.Init();
+
+			if(adminEmail is not null && adminPassword is not null)
+			{
+				var adminUser = new WebUser {
+					Email = adminEmail,
+
+					Role = Role.Admin
+				};
+				adminUser.PasswordHash = new PasswordHasher<WebUser>().HashPassword(adminUser, adminPassword!);
+
+				context.Users.Add(adminUser);
+				var saveTask = context.SaveChangesAsync();
+				saveTask.RunSynchronously();
+
+				// Clear the admin credentials from the configuration to prevent reuse and potential security issues
+				configuration["adminPassword"] = null;
+				configuration["adminEmail"] = null;
+
+				if(saveTask.Result <= 0)
+				{
+					throw new Exception("Failed to create admin user in the database.");
+				}
+			}
+
+			var users = context.Users.Where(u => u.Role == Role.Admin).ToList();
+			if(users.Count == 0)
+			{
+				#if DEBUG
+				// In debug mode, we can create a default admin user with debug credentials
+				var user = new WebUser {
+					Email = SecureSecretVault.DebugUserEmail,
+					Role = Role.Admin
+				};
+				user.PasswordHash = new PasswordHasher<WebUser>().HashPassword(user, SecureSecretVault.DebugUserPassword);
+				context.Users.Add(user);
+				context.SaveChanges();
+				return;
+				#endif
+
+				throw new Exception("There is no admin user in the database and no admin credentials were provided. Server cannot start without an administrator.");
+			}
+		}
 	}
 }

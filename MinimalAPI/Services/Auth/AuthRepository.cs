@@ -1,7 +1,9 @@
+using Azure.Core;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
 using MinimalAPI.DTOs.Requests.Auth;
-using Microsoft.EntityFrameworkCore;
 using MinimalAPI.Services.Database;
 
 namespace MinimalAPI.Services.Auth;
@@ -14,8 +16,7 @@ public class AuthRepository : IAuthRepository
 	{
 		_context = context;
 	}
-
-	public async Task<IEnumerable<WebUser>> GetUsersAsync()
+	public async Task<IEnumerable<WebUser>?> GetUsersAsync()
 	{
 		return await _context.Users.ToListAsync();
 	}
@@ -28,7 +29,7 @@ public class AuthRepository : IAuthRepository
 	public async Task<WebUser?> AddUserAsync(WebUser user)
 	{
 		var entry = await _context.Users.AddAsync(user);
-		await _context.SaveChangesAsync();
+		//await _context.SaveChangesAsync();
 		return entry.Entity;
 	}
 
@@ -40,7 +41,7 @@ public class AuthRepository : IAuthRepository
 			return false;
 		}
 		_context.Users.Remove(user);
-		await _context.SaveChangesAsync();
+		//await _context.SaveChangesAsync();
 		return true;
 	}
 

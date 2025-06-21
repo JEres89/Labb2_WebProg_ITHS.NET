@@ -12,7 +12,7 @@ namespace MinimalAPI.Endpoints;
 
 using GetProductsResponseTask =
 	Task<Results<
-		Ok<ProductGetAllResponse>,
+		Ok<ProductCollectionResponse>,
 		JsonHttpResult<string>,
 		StatusCodeHttpResult>>;
 

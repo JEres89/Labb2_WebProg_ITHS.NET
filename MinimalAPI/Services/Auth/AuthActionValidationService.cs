@@ -2,7 +2,9 @@
 using Microsoft.Data.SqlClient;
 using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
+using MinimalAPI.DTOs;
 using MinimalAPI.DTOs.Requests.Auth;
+using MinimalAPI.DTOs.Responses.Auth;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -21,12 +23,10 @@ public class AuthActionValidationService : IAuthActionValidationService
 	public async Task<ValidationResult<string>> RegisterAsync(RegisterRequest request)
 	{
 		if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
-		{
 			return new ValidationResult<string> {
 				ResultCode = BadRequest,
-				ResultValue = null,
-				ErrorMessage = "Email and password are required." };
-		}
+				ErrorMessage = "Email and password are required." 
+			};
 
 		var canWork = await _worker.BeginWork<string>(true);
 		if(canWork.ResultCode != Continue)
@@ -35,12 +35,10 @@ public class AuthActionValidationService : IAuthActionValidationService
 		var repo = _worker.Auth;
 
 		if((await repo.GetUserByEmailAsync(request.Email)) != null)
-		{
 			return new ValidationResult<string> {
 				ResultCode = Conflict,
-				ResultValue = null,
-				ErrorMessage = "There is already an account associated with this email address." };
-		}
+				ErrorMessage = "There is already an account associated with this email address." 
+			};
 
 		var user = new WebUser {
 			Email = request.Email,
@@ -78,118 +76,113 @@ public class AuthActionValidationService : IAuthActionValidationService
 			return await ErrorHelper.RollbackOnServerError<string>(_worker, e);
 		}
 	}
-	public async Task<ValidationResult<string>> LoginAsync(LoginRequest request)
+	public async Task<ValidationResult<LoginResponse>> LoginAsync(LoginRequest request)
 	{
-		// Simulate login validation logic
 		if(string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
-		{
-			return new ValidationResult<string> {
+			return new ValidationResult<LoginResponse> {
 				ResultCode = BadRequest,
-				ResultValue = null,
 				ErrorMessage = "Email and password are required."
 			};
-		}
 
 		var user = await _worker.Auth.GetUserByEmailAsync(request.Email);
 
 		if(user == null)
-		{
-			return new ValidationResult<string> {
+			return new ValidationResult<LoginResponse> {
 				ResultCode = Unauthorized,
-				ResultValue = null,
 				ErrorMessage = "Invalid email or password."
 			};
-		}
 
 		var passwordHasher = new PasswordHasher<WebUser>();
 		if(passwordHasher.VerifyHashedPassword(user, user.PasswordHash!, request.Password) == PasswordVerificationResult.Failed)
-		{
-			return new ValidationResult<string> {
+			return new ValidationResult<LoginResponse> {
 				ResultCode = Unauthorized,
-				ResultValue = null,
 				ErrorMessage = "Invalid email or password."
 			};
-		}
 
-		return new ValidationResult<string> {
+		if(user.CustomerId.HasValue && user.CustomerId.Value > 0)
+			user.Customer = await _worker.Customers.GetCustomerAsync(user.CustomerId.Value);
+
+		return new ValidationResult<LoginResponse> {
 			ResultCode = OK,
-			ResultValue = TokenGenerator.GenerateToken(SecureSecretVault.GetJwtSecret(), user),
-			ErrorMessage = null
+			ResultValue = new LoginResponse {
+				User = new WebUser { 
+					Email = user.Email,
+					Role = user.Role,
+					CustomerId = user.CustomerId,
+					Customer = user.Customer
+				},
+				Token = TokenGenerator.GenerateToken(SecureSecretVault.GetJwtSecret(), user)
+			}
 		};
 	}
 
 	public async Task<ValidationResult<WebUser>> GetUserAsync(string userEmail, ClaimsPrincipal user)
 	{
 		if(string.IsNullOrEmpty(userEmail))
-		{
 			return await Task.FromResult(new ValidationResult<WebUser> {
 				ResultCode = BadRequest,
-				ResultValue = null,
 				ErrorMessage = "Email is required."
 			});
-		}
 
 		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst(JwtRegisteredClaimNames.Email)?.Value == userEmail))
-		{
 			return await Task.FromResult(new ValidationResult<WebUser> {
 				ResultCode = Forbidden,
-				ResultValue = null,
 				ErrorMessage = "You do not have permission to access this user."
 			});
-		}
 
 		var webUser = await _worker.Auth.GetUserByEmailAsync(userEmail);
 		if(webUser == null)
-		{
 			return await Task.FromResult(new ValidationResult<WebUser> {
 				ResultCode = NotFound,
-				ResultValue = null,
 				ErrorMessage = "User not found."
 			});
-		}
+
 		return await Task.FromResult(new ValidationResult<WebUser> {
 			ResultCode = OK,
-			ResultValue = webUser,
-			ErrorMessage = null
+			ResultValue = webUser
 		});
 	}
 
 	public async Task<ValidationResult<IEnumerable<WebUser>>> GetUsersAsync()
 	{
 		var allUsers = await _worker.Auth.GetUsersAsync();
-		return new ValidationResult<IEnumerable<WebUser>> {
-			ResultCode = OK,
-			ResultValue = allUsers,
-			ErrorMessage = null
-		};
+
+		if(allUsers == null)
+			return new ValidationResult<IEnumerable<WebUser>> {
+				ResultCode = InternalServerError,
+				ErrorMessage = "Could not retreive Users."
+			};
+
+		else if(allUsers.Count() == 0)
+			return new ValidationResult<IEnumerable<WebUser>> {
+				ResultCode = NoContent
+			};
+
+		else
+			return new ValidationResult<IEnumerable<WebUser>> {
+				ResultCode = OK,
+				ResultValue = allUsers
+			};
 	}
 	
 	public async Task<ValidationResult<string>> DeleteUserAsync(string userEmail)
 	{
 		if(string.IsNullOrEmpty(userEmail))
-		{
 			return new ValidationResult<string> {
 				ResultCode = BadRequest,
-				ResultValue = null,
 				ErrorMessage = "Email is required."
 			};
-		}
+
 		var result = await _worker.Auth.DeleteUserAsync(userEmail);
 		if(result)
-		{
-			return new ValidationResult<string> {
-				ResultCode = NoContent,
-				ResultValue = null,
-				ErrorMessage = null
+			return new ValidationResult<string> { 
+				ResultCode = NoContent 
 			};
-		}
+
 		else
-		{
 			return new ValidationResult<string> {
 				ResultCode = NotFound,
-				ResultValue = null,
 				ErrorMessage = "User not found."
 			};
-		}
 	}
 }

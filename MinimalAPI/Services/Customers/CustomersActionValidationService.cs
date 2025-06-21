@@ -34,23 +34,27 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 		if(customers == null)
 			return new ValidationResult<IEnumerable<Customer>> { 
 				ResultCode = InternalServerError, 
-				ErrorMessage = "Could not retreive Customers." };
+				ErrorMessage = "Could not retreive Customers." 
+			};
 
 		else if(customers.Count() == 0)
 			return new ValidationResult<IEnumerable<Customer>> { 
-				ResultCode = NoContent };
+				ResultCode = NoContent 
+			};
 
 		else
 			return new ValidationResult<IEnumerable<Customer>> { 
 				ResultCode = OK, 
-				ResultValue = customers };
+				ResultValue = customers 
+			};
 	}
 
 	public async Task<ValidationResult<Customer>> CreateCustomerAsync(ClaimsPrincipal user, Customer customer)
 	{
 		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst(JwtRegisteredClaimNames.Email)?.Value == customer.Email))
 			return new ValidationResult<Customer> { 
-				ResultCode = Unauthorized };
+				ResultCode = Unauthorized 
+			};
 
 		var canWork = await _worker.BeginWork<Customer>(true);
 		if(canWork.ResultCode != Continue)
@@ -87,7 +91,8 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 	{
 		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst("CustomerId")?.Value == id.ToString()))
 			return new ValidationResult<Customer> { 
-				ResultCode = Unauthorized };
+				ResultCode = Unauthorized 
+			};
 
 		var canWork = await _worker.BeginWork<Customer>(false);
 		if(canWork.ResultCode != Continue)
@@ -98,19 +103,22 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 
 		return new ValidationResult<Customer> { 
 			ResultCode = customer == null ? NotFound : OK, 
-			ResultValue = customer };
+			ResultValue = customer 
+		};
 	}
 
 	public async Task<ValidationResult<Customer>> UpdateCustomerAsync(ClaimsPrincipal user, int id, Dictionary<string, string> updates)
 	{
 		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst("CustomerId")?.Value == id.ToString()))
 			return new ValidationResult<Customer> { 
-				ResultCode = Unauthorized };
+				ResultCode = Unauthorized 
+			};
 
 		if(updates == null || updates.Count == 0)
 			return new ValidationResult<Customer> { 
 				ResultCode = BadRequest, 
-				ErrorMessage = "No properties were provided" };
+				ErrorMessage = "No properties were provided" 
+			};
 
 		var canWork = await _worker.BeginWork<Customer>(true);
 		if(canWork.ResultCode != Continue)
@@ -123,7 +131,8 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 			if(updatedCustomer == null)
 				return new ValidationResult<Customer> {
 					ResultCode = NotFound,
-					ErrorMessage = $"Customer with id {id} could not be found." };
+					ErrorMessage = $"Customer with id {id} could not be found." 
+				};
 
 			var changes = await _worker.SaveChangesAsync<Customer>();
 
@@ -140,6 +149,7 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 		{
 			if(ErrorHelper.DuplicateSqlErrors.Contains(se.Number)) // Unique constraint errors
 				return await ErrorHelper.RollbackOnSqlServerDuplicateError<Customer>(_worker, se, _customerUniquePropertiesErrors);
+
 			else
 				return await ErrorHelper.RollbackOnSqlServerError<Customer>(_worker, se, "updating the Customer");
 		}
@@ -153,7 +163,8 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 	{
 		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst("CustomerId")?.Value == id.ToString()))
 			return new ValidationResult<int> { 
-				ResultCode = Unauthorized };
+				ResultCode = Unauthorized 
+			};
 
 		var canWork = await _worker.BeginWork<int>(true);
 		if(canWork.ResultCode != Continue)
@@ -166,7 +177,8 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 			if(!success)
 				return new ValidationResult<int> {
 					ResultCode = NotFound,
-					ErrorMessage = $"Customer with id {id} could not be found." };
+					ErrorMessage = $"Customer with id {id} could not be found." 
+				};
 
 			return await _worker.SaveChangesAsync<int>();
 		}
@@ -184,7 +196,8 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 	{
 		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst("CustomerId")?.Value == id.ToString()))
 			return new ValidationResult<IEnumerable<Order>> { 
-				ResultCode = Unauthorized };
+				ResultCode = Unauthorized 
+			};
 
 		var canWork = await _worker.BeginWork<IEnumerable<Order>>(false);
 		if(canWork.ResultCode != Continue)
@@ -194,15 +207,18 @@ public class CustomersActionValidationService : ICustomersActionValidationServic
 
 		if(orders == null)
 			return new ValidationResult<IEnumerable<Order>> { 
-				ResultCode = NotFound };
+				ResultCode = NotFound 
+			};
 
 		else if(orders.Count() == 0)
 			return new ValidationResult<IEnumerable<Order>> { 
-				ResultCode = NoContent };
+				ResultCode = NoContent 
+			};
 
 		else
 			return new ValidationResult<IEnumerable<Order>> { 
 				ResultCode = OK, 
-				ResultValue = orders };
+				ResultValue = orders 
+			};
 	}
 }

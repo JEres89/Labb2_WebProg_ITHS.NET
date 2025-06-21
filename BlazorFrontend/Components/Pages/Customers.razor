@@ -14,14 +14,19 @@
     <!-- GetCustomersAsync -->
     <div class="function-row border border-2 border-dark">
         <div class="col">
-            <button @onclick="GetCustomers">Get Customers</button>
+            <button @onclick="GetCustomersAsync">Get Customers</button>
 		</div>
 		<div class="col-10 overflow-scroll" style="flex-wrap: nowrap; display: flex;">
             @if(customersCollection != null)
             {
-                foreach(var customer in customersCollection)
+                if(customersCollection.Any())
+                    foreach(var customer in customersCollection)
+                    {
+                        <CustomerComponent Customer="customer" />
+                    }
+                else
                 {
-                    <CustomerComponent Customer="customer" />
+                    <p>No customers in database.</p>
                 }
             }
         </div>
@@ -31,7 +36,7 @@
     <div class="function-row border border-2 border-dark">
         <div class="col flex-column d-flex">
             <input type="number" @bind="getCustomerId" placeholder="Customer ID" />
-            <button @onclick="GetCustomer" disabled="@getCustomerInvalid">Get Customer</button>
+            <button @onclick="GetCustomerAsync" disabled="@getCustomerInvalid">Get Customer</button>
         </div>
         <div class="col-1" />
         @if(customerResult != null)
@@ -59,7 +64,7 @@
                 <input type="text" @bind="createCustomerAddress" placeholder="Address" />
             </label>
             ( * required )
-            <button @onclick="CreateCustomer" disabled="@createCustomerInvalid">Create Customer</button>
+            <button @onclick="CreateCustomerAsync" disabled="@createCustomerInvalid">Create Customer</button>
         </div>
         <div class="col-1" />
         <div class="col d-inline-flex flex-column border border-1 border-dark">
@@ -79,7 +84,7 @@
             <input type="text" @bind="updateCustomerEmail" placeholder="Email" />
             <input type="number" @bind="updateCustomerPhone" placeholder="Phone" />
             <input type="number" @bind="updateCustomerAddress" placeholder="Address" />
-            <button @onclick="UpdateCustomer" disabled="@updateCustomerInvalid">Update Customer</button>
+            <button @onclick="UpdateCustomerAsync" disabled="@updateCustomerInvalid">Update Customer</button>
         </div>
         <div class="col-1" />
         <div class="col d-inline-flex flex-column border border-1 border-dark">
@@ -94,7 +99,7 @@
     <div class="function-row border border-2 border-dark">
         <div class="col flex-column d-flex">
             <input type="number" @bind="deleteCustomerId" placeholder="Customer ID" />
-            <button @onclick="DeleteCustomer" disabled="@deleteCustomerValid">Delete Customer</button>
+            <button @onclick="DeleteCustomerAsync" disabled="@deleteCustomerInvalid">Delete Customer</button>
         </div>
         <div class="col-1" />
         <div class="col d-inline-flex flex-column border border-1 border-dark">
@@ -106,15 +111,21 @@
     <div class="function-row border border-2 border-dark">
         <div class="col flex-column d-flex">
             <input type="number" @bind="getCustomerOrdersId" placeholder="Customer ID" />
-            <button @onclick="GetCustomerOrders" disabled="@getCustomerOrdersValid">Get Customer Orders</button>
+            <button @onclick="GetCustomerOrdersAsync" disabled="@getCustomerOrdersValid">Get Customer Orders</button>
         </div>
         <div class="col-1" />
         <div class="col overflow-scroll">
             @if(customerOrdersResult != null)
             {
-                foreach(var order in customerOrdersResult)
+                if(customerOrdersResult.Any())
+                    foreach(var order in customerOrdersResult)
+                    {
+                        <OrderComponent Order="order" />
+                    }
+
+                else
                 {
-                    <OrderComponent Order="order" />
+                    <p>Customer has no orders.</p>
                 }
             }
         </div>

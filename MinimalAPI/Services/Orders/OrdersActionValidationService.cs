@@ -26,60 +26,60 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		var orders = await repo.GetOrdersAsync();
 
 		if(orders == null)
-		{
 			return new ValidationResult<IEnumerable<Order>> {
 				ResultCode = InternalServerError,
-				ErrorMessage = "Could not retrieve Orders." };
-		}
+				ErrorMessage = "Could not retrieve Orders." 
+			};
+
 		else if(orders.Count() == 0)
-		{
 			return new ValidationResult<IEnumerable<Order>> { 
-				ResultCode = NoContent };
-		}
+				ResultCode = NoContent 
+			};
+
 		else
-		{
 			return new ValidationResult<IEnumerable<Order>> {
 				ResultCode = OK,
-				ResultValue = orders };
-		}
+				ResultValue = orders 
+			};
 	}
 
 	/// <param name="products">[n][2] where each row is [productid, count]</param>
 	public async Task<ValidationResult<Order>> CreateOrderAsync(ClaimsPrincipal user, Order order, int[][]? products)
 	{
 		bool isAdmin = user.IsInRole(Role.Admin.ToString());
+
 		if(!(isAdmin || user.FindFirst("CustomerId")?.Value == order.CustomerId.ToString()))
 			return new ValidationResult<Order> { 
-				ResultCode = Unauthorized };
+				ResultCode = Unauthorized 
+			};
 
 		if(products == null || products.Length == 0)
 			return new ValidationResult<Order> { 
 				ResultCode = BadRequest, 
-				ErrorMessage = "No products were provided." };
+				ErrorMessage = "No products were provided." 
+			};
 
 		var canWork = await _worker.BeginWork<Order>(true);
 		if(canWork.ResultCode != Continue)
 			return canWork;
 
-		if(isAdmin)
-		{
-			if(!(await _worker.Customers.VerifyCustomer(order.CustomerId)))
-				return new ValidationResult<Order> { 
-					ResultCode = BadRequest, 
-					ErrorMessage = $"Customer with id {order.CustomerId} does not exist." };
-		}
+		if(isAdmin && !(await _worker.Customers.VerifyCustomer(order.CustomerId)))
+			return new ValidationResult<Order> { 
+				ResultCode = BadRequest, 
+				ErrorMessage = $"Customer with id {order.CustomerId} does not exist." 
+			};
 
 		var repo = _worker.Orders;
 		if(order.Status == OrderStatus.New)
 		{
 			var cart = (await repo.FindOrdersAsync(o => o.CustomerId == order.CustomerId && o.Status == OrderStatus.New)).FirstOrDefault();
+			
 			if(cart != null)
-			{
 				return new ValidationResult<Order> {
 					ResultCode = Conflict,
 					ErrorMessage = "Customer already has an open cart.",
-					ResultValue = cart };
-			}
+					ResultValue = cart 
+				};
 		}
 
 		try
@@ -129,24 +129,28 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 			}
 			else
 				return new ValidationResult<Order> { 
-					ResultCode = Unauthorized };
+					ResultCode = Unauthorized 
+				};
 		}
 
 		if(order == null)
 			return new ValidationResult<Order> { 
 				ResultCode = NotFound,
-				ErrorMessage = $"Order with id {orderId} could not be found." };
+				ErrorMessage = $"Order with id {orderId} could not be found." 
+			};
 
 		return new ValidationResult<Order> {
 			ResultCode = OK,
-			ResultValue = order };
+			ResultValue = order 
+		};
 	}
 
 	public async Task<ValidationResult<Order>> UpdateOrderAsync(ClaimsPrincipal user, int orderId, OrderStatus status)
 	{
 		if(user == null)
 			return new ValidationResult<Order> { 
-				ResultCode = Unauthorized };
+				ResultCode = Unauthorized 
+			};
 
 		var canWork = await _worker.BeginWork<Order>(true);
 		if(canWork.ResultCode != Continue)
@@ -162,14 +166,17 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 			if(isAdmin)
 				return new ValidationResult<Order> { 
 					ResultCode = NotFound,
-					ErrorMessage = $"Order with id {orderId} could not be found." };
+					ErrorMessage = $"Order with id {orderId} could not be found." 
+				};
 
 			return new ValidationResult<Order> { 
-				ResultCode = Unauthorized };
+				ResultCode = Unauthorized 
+			};
 		}
 		else if(!isAdmin && user.FindFirst("CustomerId")?.Value != order.CustomerId.ToString())
 			return new ValidationResult<Order> { 
-				ResultCode = Unauthorized };
+				ResultCode = Unauthorized 
+			};
 
 		try
 		{
@@ -208,20 +215,24 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 
 			if(user.IsInRole(Role.Admin.ToString()))
 				success = await repo.DeleteOrderAsync(orderId);
+
 			else
 			{
 				var order = await repo.GetOrderAsync(orderId);
 				if(order != null && user.FindFirst("CustomerId")?.Value == order.CustomerId.ToString())
 					success = await repo.DeleteOrderAsync(orderId);
+
 				else
 					return new ValidationResult<int> { 
-						ResultCode = Unauthorized };
+						ResultCode = Unauthorized 
+					};
 			}
 
 			if(!success)
 				return new ValidationResult<int> { 
 					ResultCode = NotFound,
-					ErrorMessage = $"Order with id {orderId} could not be found." };
+					ErrorMessage = $"Order with id {orderId} could not be found." 
+				};
 
 			return await _worker.SaveChangesAsync<int>();
 		}
@@ -246,7 +257,8 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		if(!setProducts.Any())
 			return new ValidationResult<Order> {
 				ResultCode = BadRequest,
-				ErrorMessage = "Request was empty." };
+				ErrorMessage = "Request was empty." 
+			};
 
 		var canWork = await _worker.BeginWork<Order>(true);
 		if(canWork.ResultCode != Continue)
@@ -261,19 +273,23 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 			if(isAdmin)
 				return new ValidationResult<Order> { 
 					ResultCode = NotFound,
-					ErrorMessage = $"Order with id {orderId} could not be found." };
+					ErrorMessage = $"Order with id {orderId} could not be found." 
+				};
 
 			return new ValidationResult<Order> { 
-				ResultCode = Unauthorized };
+				ResultCode = Unauthorized 
+			};
 		}
 		else if(!isAdmin && user.FindFirst("CustomerId")?.Value != order.CustomerId.ToString())
 			return new ValidationResult<Order> { 
-				ResultCode = Unauthorized };
-		else
-			if(order.Status > OrderStatus.Processing)
+				ResultCode = Unauthorized 
+			};
+
+		else if(order.Status > OrderStatus.Processing)
 			return new ValidationResult<Order> { 
 				ResultCode = Forbidden, 
-				ErrorMessage = $"Order is not in a state ({order.Status}) that allows product changes." };
+				ErrorMessage = $"Order is not in a state ({order.Status}) that allows product changes." 
+			};
 
 		Order? updatedOrder = null;
 		try

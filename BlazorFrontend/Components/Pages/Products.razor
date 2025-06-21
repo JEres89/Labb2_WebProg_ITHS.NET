@@ -14,14 +14,20 @@
     <!-- GetProductsAsync -->
     <div class="function-row border border-2 border-dark">
         <div class="col">
-            <button @onclick="GetProducts">Get Products</button>
+            <button @onclick="GetProductsAsync">Get Products</button>
         </div>
         <div class="col-10 overflow-scroll">
             @if(productsCollection != null)
             {
-                foreach(var product in productsCollection)
+                if(productsCollection.Any())
+                    foreach(var product in productsCollection)
+                    {
+                        <ProductComponent Product="product" />
+                    }
+
+                else
                 {
-                    <ProductComponent Product="product" />
+                    <p>No products in database.</p>
                 }
             }
         </div>
@@ -31,7 +37,7 @@
     <div class="function-row border border-2 border-dark">
         <div class="col flex-column d-flex">
             <input type="number" @bind="getProductId" placeholder="Product ID" />
-            <button @onclick="GetProduct" disabled="@getProductInvalid">Get Product</button>
+            <button @onclick="GetProductAsync" disabled="@getProductInvalid">Get Product</button>
         </div>
         <div class="col-1" />
         @if(productResult != null)
@@ -59,7 +65,7 @@
                 <input type="number" @bind="createProductStock" placeholder="Stock" />
             </label>
             ( * required )
-            <button @onclick="CreateProduct" disabled="@createProductInvalid">Create Product</button>
+            <button @onclick="CreateProductAsync" disabled="@createProductInvalid">Create Product</button>
         </div>
         <div class="col-1" />
         <div class="col d-inline-flex flex-column border border-1 border-dark">
@@ -88,7 +94,7 @@
                 }
             </InputRadioGroup>
             <input type="number" @bind="updateProductStock" placeholder="Stock" />
-            <button @onclick="UpdateProduct" disabled="@updateProductInvalid">Update Product</button>
+            <button @onclick="UpdateProductAsync" disabled="@updateProductInvalid">Update Product</button>
         </div>
         <div class="col-1" />
         <div class="col d-inline-flex flex-column border border-1 border-dark">
@@ -103,7 +109,7 @@
     <div class="function-row border border-2 border-dark">
         <div class="col flex-column d-flex">
             <input type="number" @bind="deleteProductId" placeholder="Product ID" />
-            <button @onclick="DeleteProduct" disabled="@deleteProductValid">Delete Product</button>
+            <button @onclick="DeleteProductAsync" disabled="@deleteProductValid">Delete Product</button>
         </div>
         <div class="col-1" />
         <div class="col d-inline-flex flex-column border border-1 border-dark">
@@ -115,7 +121,7 @@
     <div class="function-row border border-2 border-dark">
         <div class="col flex-column d-flex">
             <input type="number" @bind="getProductOrdersId" placeholder="Product ID" />
-            <button @onclick="GetProductOrders" disabled="@getProductOrdersValid">Get Product Orders</button>
+            <button @onclick="GetProductOrdersAsync" disabled="@getProductOrdersValid">Get Product Orders</button>
         </div>
         <div class="col-1" />
         <div class="col overflow-scroll">

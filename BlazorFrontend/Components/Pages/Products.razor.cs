@@ -15,18 +15,17 @@ public partial class Products
 		});
 	}
 
-	private IEnumerable<ProductResponse>? productsCollection;
+	private ProductCollectionResponse? productsCollection;
 
 	/// <summary>
 	/// GetProductsAsync
 	/// </summary>
 	/// <returns></returns>
-	private async Task GetProducts()
+	private async Task GetProductsAsync()
 	{
 		resultMessage = null;
 
-		var result = await ProductService.GetProductsAsync(ResultMessage);
-		productsCollection = result?.Products;
+		productsCollection = await ProductService.GetProductsAsync(ResultMessage);
 	}
 
 	private int? getProductId;
@@ -37,7 +36,7 @@ public partial class Products
 	/// <summary>
 	/// GetProductAsync
 	/// </summary>
-	private async Task GetProduct()
+	private async Task GetProductAsync()
 	{
 		resultMessage = null;
 
@@ -60,7 +59,7 @@ public partial class Products
 	/// <summary>
 	/// CreateProductAsync
 	/// </summary>
-	private async Task CreateProduct()
+	private async Task CreateProductAsync()
 	{
 		resultMessage = null;
 		var request = new ProductCreateRequest {
@@ -156,7 +155,7 @@ public partial class Products
 	/// UpdateProductAsync
 	/// </summary>
 	/// <returns></returns>
-	private async Task UpdateProduct()
+	private async Task UpdateProductAsync()
 	{
 		resultMessage = null;
 		updateProductResult = await ProductService.UpdateProductAsync(updateProductId!.Value, updateProductFields, ResultMessage);
@@ -171,7 +170,7 @@ public partial class Products
 	/// DeleteProductAsync
 	/// </summary>
 	/// <returns></returns>
-	private async Task DeleteProduct()
+	private async Task DeleteProductAsync()
 	{
 		resultMessage = null;
 		var result = await ProductService.DeleteProductAsync(deleteProductId!.Value, ResultMessage);
@@ -187,7 +186,7 @@ public partial class Products
 	/// GetProductOrdersAsync
 	/// </summary>
 	/// <returns></returns>
-	private async Task GetProductOrders()
+	private async Task GetProductOrdersAsync()
 	{
 		resultMessage = null;
 		productOrdersResult = await ProductService.GetProductOrdersAsync(getProductOrdersId!.Value, ResultMessage);

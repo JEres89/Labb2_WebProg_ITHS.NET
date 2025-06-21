@@ -25,22 +25,21 @@ public class ProductsActionValidationService : IProductsActionValidationService
 		var products = await repo.GetProductsAsync();
 
 		if(products == null)
-		{
 			return new ValidationResult<IEnumerable<Product>> {
 				ResultCode = InternalServerError,	
-				ErrorMessage = "Could not retreive Products" };
-		}
+				ErrorMessage = "Could not retreive Products" 
+			};
+
 		else if(products.Count() == 0)
-		{
 			return new ValidationResult<IEnumerable<Product>> { 
-				ResultCode = NoContent };
-		}
+				ResultCode = NoContent 
+			};
+
 		else
-		{
 			return new ValidationResult<IEnumerable<Product>> {
 				ResultCode = OK,
-				ResultValue = products };
-		}
+				ResultValue = products 
+			};
 	}
 
 	public async Task<ValidationResult<Product>> CreateProductAsync(Product product)
@@ -87,7 +86,8 @@ public class ProductsActionValidationService : IProductsActionValidationService
 
 		return new ValidationResult<Product> { 
 			ResultCode = product == null ? NotFound : OK, 
-			ResultValue = product };
+			ResultValue = product 
+		};
 	}
 
 	public async Task<ValidationResult<Product>> UpdateProductAsync(int id, Dictionary<string, string> updates)
@@ -95,7 +95,8 @@ public class ProductsActionValidationService : IProductsActionValidationService
 		if(updates == null || updates.Count == 0)
 			return new ValidationResult<Product> { 
 				ResultCode = BadRequest, 
-				ErrorMessage = "No properties were provided" };
+				ErrorMessage = "No properties were provided" 
+			};
 
 		var canWork = await _worker.BeginWork<Product>(true);
 		if(canWork.ResultCode != Continue)
@@ -108,7 +109,8 @@ public class ProductsActionValidationService : IProductsActionValidationService
 			if(updatedProduct == null)
 				return new ValidationResult<Product> {
 					ResultCode = NotFound,
-					ErrorMessage = $"Product with id {id} could not be found." };
+					ErrorMessage = $"Product with id {id} could not be found." 
+				};
 
 			var changes = await _worker.SaveChangesAsync<Product>();
 
@@ -144,7 +146,8 @@ public class ProductsActionValidationService : IProductsActionValidationService
 			if(!success)
 				return new ValidationResult<int> { 
 					ResultCode = NotFound,
-					ErrorMessage = $"Product with id {id} could not be found." };
+					ErrorMessage = $"Product with id {id} could not be found." 
+				};
 
 			return await _worker.SaveChangesAsync<int>();
 		}
@@ -169,15 +172,18 @@ public class ProductsActionValidationService : IProductsActionValidationService
 		if(orders == null)
 			return new ValidationResult<IEnumerable<OrderProduct>> { 
 				ResultCode = NotFound,
-				ErrorMessage = $"Product with id {id} could not be found." }; 
+				ErrorMessage = $"Product with id {id} could not be found." 
+			}; 
 
 		else if(orders.Count() == 0)
 			return new ValidationResult<IEnumerable<OrderProduct>> { 
-				ResultCode = NoContent };
+				ResultCode = NoContent 
+			};
 
 		else
 			return new ValidationResult<IEnumerable<OrderProduct>> {
 				ResultCode = OK,
-				ResultValue = orders };
+				ResultValue = orders 
+			};
 	}
 }

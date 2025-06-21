@@ -18,18 +18,17 @@ public partial class Customers
 
 
 	#region GetCustomers
-	private IEnumerable<CustomerResponse>? customersCollection;
+	private CustomerCollectionResponse? customersCollection;
 
 	/// <summary>
 	/// GetCustomersAsync
 	/// </summary>
 	/// <returns></returns>
-	private async Task GetCustomers()
+	private async Task GetCustomersAsync()
 	{
 		resultMessage = null;
 
-		var result = await CustomerService.GetCustomersAsync(ResultMessage);
-		customersCollection = result?.Customers;
+		customersCollection = await CustomerService.GetCustomersAsync(ResultMessage);
 	}
 	#endregion
 
@@ -43,7 +42,7 @@ public partial class Customers
 	/// <summary>
 	/// GetCustomerAsync
 	/// </summary>
-	private async Task GetCustomer()
+	private async Task GetCustomerAsync()
 	{
 		resultMessage = null;
 
@@ -69,7 +68,7 @@ public partial class Customers
 	/// <summary>
 	/// CreateCustomerAsync
 	/// </summary>
-	private async Task CreateCustomer()
+	private async Task CreateCustomerAsync()
 	{
 		resultMessage = null;
 		var request = new CustomerCreateRequest {
@@ -144,7 +143,7 @@ public partial class Customers
 	/// UpdateCustomerAsync
 	/// </summary>
 	/// <returns></returns>
-	private async Task UpdateCustomer()
+	private async Task UpdateCustomerAsync()
 	{
 		resultMessage = null;
 		updateCustomerResult = await CustomerService.UpdateCustomerAsync(updateCustomerId!.Value, updateCustomerFields, ResultMessage);
@@ -154,7 +153,7 @@ public partial class Customers
 
 	#region DeleteCustomer
 	private int? deleteCustomerId;
-	private bool deleteCustomerValid => (deleteCustomerId??0) <= 0;
+	private bool deleteCustomerInvalid => (deleteCustomerId??0) <= 0;
 
 	private string deleteCustomerResult = string.Empty;
 
@@ -162,7 +161,7 @@ public partial class Customers
 	/// DeleteCustomerAsync
 	/// </summary>
 	/// <returns></returns>
-	private async Task DeleteCustomer()
+	private async Task DeleteCustomerAsync()
 	{
 		resultMessage = null;
 		var result = await CustomerService.DeleteCustomerAsync(deleteCustomerId!.Value, ResultMessage);
@@ -175,16 +174,16 @@ public partial class Customers
 	private int? getCustomerOrdersId;
 	private bool getCustomerOrdersValid => (getCustomerOrdersId??0) <= 0;
 
-	private IEnumerable<OrderResponse>? customerOrdersResult;
+	private OrderCollectionResponse? customerOrdersResult;
 
 	/// <summary>
 	/// GetCustomerOrdersAsync
 	/// </summary>
 	/// <returns></returns>
-	private async Task GetCustomerOrders()
+	private async Task GetCustomerOrdersAsync()
 	{
 		resultMessage = null;
-		customerOrdersResult = (await CustomerService.GetCustomerOrdersAsync(getCustomerOrdersId!.Value, ResultMessage))?.Orders;
+		customerOrdersResult = (await CustomerService.GetCustomerOrdersAsync(getCustomerOrdersId!.Value, ResultMessage));
 
 		if(customerOrdersResult == null)
 		{
