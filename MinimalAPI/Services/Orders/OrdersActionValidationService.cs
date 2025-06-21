@@ -1,6 +1,10 @@
+using Microsoft.Data.SqlClient;
 using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
-using static MinimalAPI.Services.ValidationResultCode;
+using System.Net;
+using System.Security.Claims;
+using System.Threading.Channels;
+using static System.Net.HttpStatusCode;
 
 namespace MinimalAPI.Services.Orders;
 
@@ -12,264 +16,306 @@ public class OrdersActionValidationService : IOrdersActionValidationService
 		_worker = worker;
 	}
 
-	public async Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync(WebUser? user)
+	public async Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync()
 	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<IEnumerable<Order>> { ResultCode = Unauthorized };
+		var canWork = await _worker.BeginWork<IEnumerable<Order>>(false);
+		if(canWork.ResultCode != Continue)
+			return canWork;
 
 		var repo = _worker.Orders;
 		var orders = await repo.GetOrdersAsync();
 
 		if(orders == null)
-		{
-			return new ValidationResult<IEnumerable<Order>>
-			{
-				ResultCode = Failed,
-				ErrorMessage = "Could not retrieve Orders."
+			return new ValidationResult<IEnumerable<Order>> {
+				ResultCode = InternalServerError,
+				ErrorMessage = "Could not retrieve Orders." 
 			};
-		}
-		else if(!orders.Any())
-		{
-			return new ValidationResult<IEnumerable<Order>> { ResultCode = Success };
-		}
+
+		else if(orders.Count() == 0)
+			return new ValidationResult<IEnumerable<Order>> { 
+				ResultCode = NoContent 
+			};
+
 		else
-		{
-			return new ValidationResult<IEnumerable<Order>>
-			{
-				ResultCode = Success,
-				ResultValue = orders
+			return new ValidationResult<IEnumerable<Order>> {
+				ResultCode = OK,
+				ResultValue = orders 
 			};
-		}
 	}
 
-	public async Task<ValidationResult<Order>> CreateOrderAsync(WebUser? user, Order order, int[][]? products)
+	/// <param name="products">[n][2] where each row is [productid, count]</param>
+	public async Task<ValidationResult<Order>> CreateOrderAsync(ClaimsPrincipal user, Order order, int[][]? products)
 	{
-		if(user == null || (user.CustomerId != order.CustomerId && user.Role != Role.Admin))
-			return new ValidationResult<Order> { ResultCode = Unauthorized };
+		bool isAdmin = user.IsInRole(Role.Admin.ToString());
+
+		if(!(isAdmin || user.FindFirst("CustomerId")?.Value == order.CustomerId.ToString()))
+			return new ValidationResult<Order> { 
+				ResultCode = Unauthorized 
+			};
+
+		if(products == null || products.Length == 0)
+			return new ValidationResult<Order> { 
+				ResultCode = BadRequest, 
+				ErrorMessage = "No products were provided." 
+			};
+
+		var canWork = await _worker.BeginWork<Order>(true);
+		if(canWork.ResultCode != Continue)
+			return canWork;
+
+		if(isAdmin && !(await _worker.Customers.VerifyCustomer(order.CustomerId)))
+			return new ValidationResult<Order> { 
+				ResultCode = BadRequest, 
+				ErrorMessage = $"Customer with id {order.CustomerId} does not exist." 
+			};
 
 		var repo = _worker.Orders;
-		var newOrder = await repo.CreateOrderAsync(order, products);
-		if(products != null)
+		if(order.Status == OrderStatus.New)
 		{
-			await repo.SetProductsAsync(newOrder.Id, products);
+			var cart = (await repo.FindOrdersAsync(o => o.CustomerId == order.CustomerId && o.Status == OrderStatus.New)).FirstOrDefault();
+			
+			if(cart != null)
+				return new ValidationResult<Order> {
+					ResultCode = Conflict,
+					ErrorMessage = "Customer already has an open cart.",
+					ResultValue = cart 
+				};
 		}
-		if(0 == await _worker.SaveChangesAsync())
+
+		try
 		{
-			return new ValidationResult<Order>
+			var newOrder = await repo.CreateOrderAsync(order, products);
+			var changes = await _worker.SaveChangesAsync<Order>();
+
+			if(changes.ResultCode.IsSuccessCode())
 			{
-				ResultCode = Failed,
-				ErrorMessage = "Order could not be created."
-			};
+				changes.ResultValue = newOrder;
+				return changes;
+			}
+
+			else
+				return changes;
 		}
-
-		return new ValidationResult<Order>
+		catch(SqlException se)
 		{
-			ResultCode = Success,
-			ResultValue = newOrder
-		};
+			return await ErrorHelper.RollbackOnSqlServerError<Order>(_worker, se, "creating the Order");
+		}
+		catch(Exception e)
+		{
+			return await ErrorHelper.RollbackOnServerError<Order>(_worker, e);
+		}
 	}
 
-	public async Task<ValidationResult<Order>> GetOrderAsync(WebUser? user, int id)
+	public async Task<ValidationResult<Order>> GetOrderAsync(ClaimsPrincipal user, int orderId) => await GetOrderAsync(user, orderId, false);
+
+	private async Task<ValidationResult<Order>> GetOrderAsync(ClaimsPrincipal user, int orderId, bool withProducts)
 	{
-		return await GetOrderAsync(user, id, false);
-
-		//if(user == null)
-		//	return new ValidationResult<Order> { ResultCode = Unauthorized };
-		//else if(user.Role != Role.Admin)
-		//{
-		//	if(user.Customer == null)
-		//	{
-		//		var customer = await _worker.Customers.GetCustomerAsync(user.CustomerId);
-		//		if(customer == null)
-		//			return new ValidationResult<Order> { ResultCode = Unauthorized };
-
-		//		if(user.Customer == null)
-		//			user.Customer = customer;
-
-		//		if(customer.)
-		//	}
-		//	var order = await _worker.Orders.GetOrderAsync(id);
-		//	if(order != null && order.CustomerId == user.CustomerId)
-		//		return new ValidationResult<Order> { ResultCode = Success, ResultValue = order };
-		//	else
-		//	{
-		//		return new ValidationResult<Order> { ResultCode = Unauthorized };
-		//	}
-		//}
-
-		//var repo = _worker.Orders;
-		//var order = await repo.GetOrderAsync(id);
-
-		//if(user.Role != Role.Admin || user.CustomerId != order.CustomerId)
-		//	return new ValidationResult<Order> { ResultCode = Unauthorized };
-
-		//return new ValidationResult<Order>
-		//{
-		//	ResultCode = order == null ? NotFound : Success,
-		//	ResultValue = order
-		//};
-	}
-	private async Task<ValidationResult<Order>> GetOrderAsync(WebUser? user, int id, bool withProducts)
-	{
-		if(user == null)
-			return new ValidationResult<Order> { ResultCode = Unauthorized };
+		var canWork = await _worker.BeginWork<Order>(false);
+		if(canWork.ResultCode != Continue)
+			return canWork;
 
 		var repo = _worker.Orders;
+
 		Order? order;
-		if(user.Role == Role.Admin)
-			order = await repo.GetOrderAsync(id, withProducts);
+		if(user.IsInRole(Role.Admin.ToString()))
+			order = await repo.GetOrderAsync(orderId, withProducts);
 		else
 		{
-			order = await repo.GetOrderAsync(id);
-			if(order != null && order.CustomerId == user.CustomerId)
+			order = await repo.GetOrderAsync(orderId);
+			if(order != null && order.CustomerId.ToString() == user.FindFirst("CustomerId")?.Value)
+			{
 				if(withProducts)
-					order = await repo.GetOrderAsync(id, true);
+					order = await repo.GetOrderAsync(orderId, true);
+			}
 			else
-				return new ValidationResult<Order> { ResultCode = Unauthorized };
+				return new ValidationResult<Order> { 
+					ResultCode = Unauthorized 
+				};
 		}
 
 		if(order == null)
-			return new ValidationResult<Order> { ResultCode = NotFound };
+			return new ValidationResult<Order> { 
+				ResultCode = NotFound,
+				ErrorMessage = $"Order with id {orderId} could not be found." 
+			};
 
-		return new ValidationResult<Order>
-		{
-			ResultCode = Success,
-			ResultValue = order
+		return new ValidationResult<Order> {
+			ResultCode = OK,
+			ResultValue = order 
 		};
 	}
 
-	public async Task<ValidationResult<Order>> UpdateOrderAsync(WebUser? user, int id, OrderStatus status)
+	public async Task<ValidationResult<Order>> UpdateOrderAsync(ClaimsPrincipal user, int orderId, OrderStatus status)
 	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<Order> { ResultCode = Unauthorized };
+		if(user == null)
+			return new ValidationResult<Order> { 
+				ResultCode = Unauthorized 
+			};
+
+		var canWork = await _worker.BeginWork<Order>(true);
+		if(canWork.ResultCode != Continue)
+			return canWork;
 
 		var repo = _worker.Orders;
-		var order = await repo.GetOrderAsync(id);
+		var order = await repo.GetOrderAsync(orderId);
+
+		bool isAdmin = user.IsInRole(Role.Admin.ToString());
 
 		if(order == null)
-			return new ValidationResult<Order> { ResultCode = NotFound };
-
-		order.Status = status;
-
-		var updatedOrder = await repo.UpdateOrderStatusAsync(id, status);
-
-		if(0 == await _worker.SaveChangesAsync())
 		{
-			return new ValidationResult<Order>
-			{
-				ResultCode = Failed,
-				ErrorMessage = "No changes were made."
+			if(isAdmin)
+				return new ValidationResult<Order> { 
+					ResultCode = NotFound,
+					ErrorMessage = $"Order with id {orderId} could not be found." 
+				};
+
+			return new ValidationResult<Order> { 
+				ResultCode = Unauthorized 
 			};
 		}
-		return new ValidationResult<Order>
+		else if(!isAdmin && user.FindFirst("CustomerId")?.Value != order.CustomerId.ToString())
+			return new ValidationResult<Order> { 
+				ResultCode = Unauthorized 
+			};
+
+		try
 		{
-			ResultCode = Success,
-			ResultValue = updatedOrder
-		};
+			var updatedOrder = await repo.UpdateOrderStatusAsync(orderId, status);
+			var changes = await _worker.SaveChangesAsync<Order>();
+
+			if(changes.ResultCode.IsSuccessCode())
+			{
+				changes.ResultValue = updatedOrder;
+				return changes;
+			}
+
+			else
+				return changes;
+		}
+		catch(SqlException se)
+		{
+			return await ErrorHelper.RollbackOnSqlServerError<Order>(_worker, se, "updating the Order");
+		}
+		catch(Exception e)
+		{
+			return await ErrorHelper.RollbackOnServerError<Order>(_worker, e);
+		}
 	}
 
-	public async Task<ValidationResultCode> DeleteOrderAsync(WebUser? user, int id)
+	public async Task<ValidationResult<int>> DeleteOrderAsync(ClaimsPrincipal user, int orderId)
 	{
-		if(user == null)
-			return Unauthorized;
+		var canWork = await _worker.BeginWork<int>(true);
+		if(canWork.ResultCode != Continue)
+			return canWork;
+
+		try
+		{
+			var repo = _worker.Orders;
+			bool success = false;
+
+			if(user.IsInRole(Role.Admin.ToString()))
+				success = await repo.DeleteOrderAsync(orderId);
+
+			else
+			{
+				var order = await repo.GetOrderAsync(orderId);
+				if(order != null && user.FindFirst("CustomerId")?.Value == order.CustomerId.ToString())
+					success = await repo.DeleteOrderAsync(orderId);
+
+				else
+					return new ValidationResult<int> { 
+						ResultCode = Unauthorized 
+					};
+			}
+
+			if(!success)
+				return new ValidationResult<int> { 
+					ResultCode = NotFound,
+					ErrorMessage = $"Order with id {orderId} could not be found." 
+				};
+
+			return await _worker.SaveChangesAsync<int>();
+		}
+		catch(SqlException se)
+		{
+			return await ErrorHelper.RollbackOnSqlServerError<int>(_worker, se, "deleting the Order");
+		}
+		catch(Exception e)
+		{
+			return await ErrorHelper.RollbackOnServerError<int>(_worker, e);
+		}
+	}
+
+	public async Task<ValidationResult<Order>> GetProductsAsync(ClaimsPrincipal user, int orderId)
+	{
+		return await GetOrderAsync(user, orderId, true);
+	}
+
+	/// <param name="setProducts">[n][2] where each row is [productid, count]</param>
+	public async Task<ValidationResult<Order>> UpdateProductsAsync(ClaimsPrincipal user, int orderId, IEnumerable<int[]> setProducts, bool replace = false)
+	{
+		if(!setProducts.Any())
+			return new ValidationResult<Order> {
+				ResultCode = BadRequest,
+				ErrorMessage = "Request was empty." 
+			};
+
+		var canWork = await _worker.BeginWork<Order>(true);
+		if(canWork.ResultCode != Continue)
+			return canWork;
 
 		var repo = _worker.Orders;
-		bool success = false;
+		var order = await repo.GetOrderAsync(orderId);
 
-		if(user.Role == Role.Admin)
-			success = await repo.DeleteOrderAsync(id);
-		else
-		{
-			var order = await repo.GetOrderAsync(id);
-			if(order != null && order.CustomerId == user.CustomerId)
-				success = await repo.DeleteOrderAsync(id);
-			else
-				return Unauthorized;
-		}
-
-		if(!success)
-			return NotFound;
-
-		var changes = await _worker.SaveChangesAsync();
-
-		return changes > 0 ? Success : Failed;
-	}
-
-	public async Task<ValidationResult<Order>> GetProductsAsync(WebUser? user, int id)
-	{
-		return await GetOrderAsync(user, id, true);
-	}
-
-	public async Task<ValidationResult<Order>> UpdateProductsAsync(WebUser? user, int id, IEnumerable<int[]> setProducts)
-	{
-		if(user == null)
-			return new ValidationResult<Order> { ResultCode = Unauthorized };
-
-		var repo = _worker.Orders;
-		Order? order;
-		if(user.Role == Role.Admin)
-			order = await repo.GetOrderAsync(id, true);
-		else
-		{
-			order = await repo.GetOrderAsync(id);
-			if(order != null && order.CustomerId == user.CustomerId)
-				order = await repo.GetOrderAsync(id, true);
-			else
-				return new ValidationResult<Order> { ResultCode = Unauthorized };
-		}
-
+		bool isAdmin = user.IsInRole(Role.Admin.ToString());
 		if(order == null)
-			return new ValidationResult<Order> { ResultCode = NotFound };
-
-		var updatedOrder = await repo.UpdateProductsAsync(id, setProducts);
-
-		if(0 == await _worker.SaveChangesAsync())
 		{
-			return new ValidationResult<Order>
-			{
-				ResultCode = Failed,
-				ErrorMessage = "No changes were made."
+			if(isAdmin)
+				return new ValidationResult<Order> { 
+					ResultCode = NotFound,
+					ErrorMessage = $"Order with id {orderId} could not be found." 
+				};
+
+			return new ValidationResult<Order> { 
+				ResultCode = Unauthorized 
 			};
 		}
-		return new ValidationResult<Order>
-		{
-			ResultCode = Success,
-			ResultValue = updatedOrder
-		};
-	}
+		else if(!isAdmin && user.FindFirst("CustomerId")?.Value != order.CustomerId.ToString())
+			return new ValidationResult<Order> { 
+				ResultCode = Unauthorized 
+			};
 
-	public async Task<ValidationResult<Order>> SetProductsAsync(WebUser? user, int id, IEnumerable<int[]> setProducts)
-	{
-		if(user == null)
-			return new ValidationResult<Order> { ResultCode = Unauthorized };
+		else if(order.Status > OrderStatus.Processing)
+			return new ValidationResult<Order> { 
+				ResultCode = Forbidden, 
+				ErrorMessage = $"Order is not in a state ({order.Status}) that allows product changes." 
+			};
 
-		var repo = _worker.Orders;
-		Order? order;
-		if(user.Role == Role.Admin)
-			order = await repo.GetOrderAsync(id, true);
-		else
+		Order? updatedOrder = null;
+		try
 		{
-			order = await repo.GetOrderAsync(id);
-			if(order != null && order.CustomerId == user.CustomerId)
-				order = await repo.GetOrderAsync(id, true);
+			if(replace)
+				updatedOrder = await repo.SetProductsAsync(orderId, setProducts);
 			else
-				return new ValidationResult<Order> { ResultCode = Unauthorized };
-		}
+				updatedOrder = await repo.UpdateProductsAsync(orderId, setProducts);
+			var changes = await _worker.SaveChangesAsync<Order>();
 
-		var updatedOrder = await repo.SetProductsAsync(id, setProducts);
-
-		if(0 == await _worker.SaveChangesAsync())
-		{
-			return new ValidationResult<Order>
+			if(changes.ResultCode.IsSuccessCode())
 			{
-				ResultCode = Failed,
-				ErrorMessage = "No changes were made."
-			};
+				changes.ResultValue = updatedOrder;
+				return changes;
+			}
+
+			else
+				return changes;
 		}
-		return new ValidationResult<Order>
+		catch(SqlException se)
 		{
-			ResultCode = Success,
-			ResultValue = updatedOrder
-		};
+			return await ErrorHelper.RollbackOnSqlServerError<Order>(_worker, se, "updating the Products in the Order");
+		}
+		catch(Exception e)
+		{
+			return await ErrorHelper.RollbackOnServerError<Order>(_worker, e);
+		}
 	}
 }

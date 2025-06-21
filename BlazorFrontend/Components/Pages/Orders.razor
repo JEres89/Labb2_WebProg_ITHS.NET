@@ -1,0 +1,167 @@
+﻿@using MinimalAPI.DTOs.Requests.Orders
+@using MinimalAPI.DTOs.Responses.Orders
+@using System.Text.Json
+@using MinimalAPI.DataModels
+
+@page "/orders"
+
+@inject BlazorFrontend.Services.OrderService OrderService
+
+<h3>OrderService Demo</h3>
+<div class="d-grid">
+    <textarea class="sticky-lg-top" rows="5" cols="60" readonly>@resultMessage</textarea>
+
+    <!-- GetOrdersAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col">
+            <button @onclick="GetOrdersAsync">Get Orders</button>
+		</div>
+		<div class="col-10 overflow-scroll" style="flex-wrap: nowrap; display: flex;">
+            @if(ordersCollection != null)
+            {
+                if(ordersCollection.Any())
+                    foreach(var order in ordersCollection)
+                    {
+                        <OrderComponent Order="order" />
+                    }
+                else
+                {
+                    <p>No orders in database.</p>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- GetOrderAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="getOrderId" placeholder="Order ID" />
+            <button @onclick="GetOrderAsync" disabled="@getOrderInvalid">Get Order</button>
+        </div>
+        <div class="col-1" />
+        @if(getOrderResult != null)
+        {
+            <OrderComponent Order="getOrderResult" DivClass="col d-inline-flex flex-column border border-1 border-dark" />
+        }
+    </div>
+
+    <!-- CreateOrderAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <label>
+                <input type="number" @bind="customerId" placeholder="Customer ID" />
+            </label>
+            <label>
+                <input type="number" @bind="productId" placeholder="First product ID" />
+            </label>
+            <label>
+                <input type="number" @bind="productCount" placeholder="Amount" />
+            </label>
+            <button @onclick="CreateOrderAsync" disabled="@createOrderInvalid">Create Order</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            @if(createOrderResult != null)
+            {
+                <OrderComponent Order="createOrderResult" />
+            }
+        </div>
+    </div>
+
+    <!-- UpdateOrderStatusAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="updateOrderId" placeholder="Order ID" />
+            <InputRadioGroup @bind-Value="updateOrderStatus" class="mb-2">
+                <InputRadio Value=OrderStatus.New /> New
+                <InputRadio Value=OrderStatus.Processing /> Processing
+                <InputRadio Value=OrderStatus.Shipped /> Shipped
+                <InputRadio Value=OrderStatus.Delivered /> Delivered
+            </InputRadioGroup>
+
+            <button @onclick="UpdateOrderStatusAsync" disabled="@updateOrderInvalid">Update Order status</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            @if(updateOrderResult != null)
+            {
+                <OrderComponent Order="updateOrderResult" />
+            }
+        </div>
+    </div>
+
+    <!-- DeleteOrderAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="deleteOrderId" placeholder="Order ID" />
+            <button @onclick="DeleteOrderAsync" disabled="@deleteOrderInvalid">Delete Order</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            <textarea rows="1" cols="60" readonly>@deleteOrderResult</textarea>
+        </div>
+    </div>
+
+    <!-- GetOrderProductsAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="getOrderProductsId" placeholder="Order ID" />
+            <button @onclick="GetOrderProductsAsync" disabled="@getOrderProductsValid">Get Order Products</button>
+        </div>
+        <div class="col-1" />
+        <div class="col overflow-scroll">
+            @if(orderProductsResult != null)
+            {
+                if(orderProductsResult.Any())
+                    foreach(var item in orderProductsResult)
+                    {
+                        <div class="d-inline-flex flex-row">
+                            <span class="me-2">Product path: <b>@item.Path</b></span>
+                            <span class="me-2">Amount: <b>@item.Count</b></span>
+                            <span class="me-2">Price: <b>@item.Price</b></span>
+                        </div>
+                        <ProductComponent Product="item.Product" />
+                    }
+                else
+                {
+                    <p>Order has no products.</p>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- UpdateOrderProductsAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="number" @bind="updateOrderProductsId" placeholder="ID" />
+            
+            @for (int i = 0; i < updateOrderProducts.Count; i++)
+            {
+                int index = i;
+                var item = updateOrderProducts[i];
+                <div class="d-inline-flex flex-row">
+                    <label>
+                        <input type="number" @bind="item[0]" placeholder="Product ID" />
+                    </label>
+                    <label>
+                        <input type="number" @bind="item[1]" placeholder="Amount" />
+                    </label>
+                    <button @onclick="() => RemoveProductToUpdate(index)">-</button>
+                </div>
+            }
+
+            <button @onclick="AddProductToUpdate">+</button>
+
+            <button @onclick="SetOrderProductsAsync" disabled="@updateOrderProductInvalid">Update products</button>
+            <button @onclick="ReplaceOrderProductAsync" disabled="@updateOrderProductInvalid">Replace products</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            @if(updateOrderResult != null)
+            {
+                <OrderComponent Order="updateOrderResult" />
+            }
+        </div>
+    </div>
+
+</div>

@@ -1,7 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore.Diagnostics;
+﻿using Microsoft.Data.SqlClient;
 using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
-using static MinimalAPI.Services.ValidationResultCode;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
+using static System.Net.HttpStatusCode;
 
 namespace MinimalAPI.Services.Products;
 
@@ -12,135 +14,176 @@ public class ProductsActionValidationService : IProductsActionValidationService
 	{
 		_worker = worker;
 	}
-
+	
 	public async Task<ValidationResult<IEnumerable<Product>>> GetProductsAsync()
 	{
+		var canWork = await _worker.BeginWork<IEnumerable<Product>>(false);
+		if(canWork.ResultCode != Continue)
+			return canWork;
+
 		var repo = _worker.Products;
 		var products = await repo.GetProductsAsync();
 
 		if(products == null)
-		{
-			return new ValidationResult<IEnumerable<Product>>
-			{
-				ResultCode = Failed,
-				ErrorMessage = "Could not retreive Products"
+			return new ValidationResult<IEnumerable<Product>> {
+				ResultCode = InternalServerError,	
+				ErrorMessage = "Could not retreive Products" 
 			};
-		}
-		else if(!products.Any())
-			return new ValidationResult<IEnumerable<Product>> { ResultCode = Success };
+
+		else if(products.Count() == 0)
+			return new ValidationResult<IEnumerable<Product>> { 
+				ResultCode = NoContent 
+			};
 
 		else
-		{
-			return new ValidationResult<IEnumerable<Product>>
-			{
-				ResultCode = Success,
-				ResultValue = products
+			return new ValidationResult<IEnumerable<Product>> {
+				ResultCode = OK,
+				ResultValue = products 
 			};
-		}
 	}
 
-	public async Task<ValidationResult<Product>> CreateProductAsync(WebUser? user, Product product)
+	public async Task<ValidationResult<Product>> CreateProductAsync(Product product)
 	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<Product> { ResultCode = Unauthorized };
+		var canWork = await _worker.BeginWork<Product>(true);
+		if(canWork.ResultCode != Continue)
+			return canWork;
 
-		var repo = _worker.Products;
-		var newProduct = await repo.CreateProductAsync(product);
-		var changes = await _worker.SaveChangesAsync();
-
-		return new ValidationResult<Product>
+		try
 		{
-			ResultCode = changes > 0 ? Success : Failed,
-			ResultValue = newProduct
-		};
+			var newProduct = await _worker.Products.CreateProductAsync(product);
+			var changes = await _worker.SaveChangesAsync<Product>();
+
+			if(changes.ResultCode.IsSuccessCode())
+			{
+				changes.ResultValue = newProduct;
+				return changes;
+			}
+
+			else
+				return changes;
+		}
+		catch(SqlException se)
+		{
+			if(ErrorHelper.DuplicateSqlErrors.Contains(se.Number)) // Unique constraint errors
+				return await ErrorHelper.RollbackOnSqlServerDuplicateError<Product>(_worker, se);
+			else
+				return await ErrorHelper.RollbackOnSqlServerError<Product>(_worker, se, "creating the Product");
+		}
+		catch(Exception e)
+		{
+			return await ErrorHelper.RollbackOnServerError<Product>(_worker, e);
+		}
 	}
 
 	public async Task<ValidationResult<Product>> GetProductAsync(int id)
 	{
+		var canWork = await _worker.BeginWork<Product>(false);
+		if(canWork.ResultCode != Continue)
+			return canWork;
+
 		var repo = _worker.Products;
 		var product = await repo.GetProductAsync(id);
 
-		return new ValidationResult<Product>
-		{
-			ResultCode = product == null ? NotFound : Success,
-			ResultValue = product
+		return new ValidationResult<Product> { 
+			ResultCode = product == null ? NotFound : OK, 
+			ResultValue = product 
 		};
 	}
 
-	public async Task<ValidationResult<Product>> UpdateProductAsync(WebUser? user, int id, Dictionary<string, string> updates)
+	public async Task<ValidationResult<Product>> UpdateProductAsync(int id, Dictionary<string, string> updates)
 	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<Product> { ResultCode = Unauthorized };
+		if(updates == null || updates.Count == 0)
+			return new ValidationResult<Product> { 
+				ResultCode = BadRequest, 
+				ErrorMessage = "No properties were provided" 
+			};
 
-		var repo = _worker.Products;
-		var product = await repo.GetProductAsync(id);
-
-		if(product == null)
-			return new ValidationResult<Product> { ResultCode = NotFound };
-
-		Product? updatedProduct = null;
+		var canWork = await _worker.BeginWork<Product>(true);
+		if(canWork.ResultCode != Continue)
+			return canWork;
 
 		try
 		{
-			updatedProduct = await repo.UpdateProductAsync(id, updates);
-		}
-		catch(InvalidOperationException ex)
-		{
-			_worker.Dispose();
-			if(ex.Message.Contains("could not be found"))
-				return new ValidationResult<Product>
-				{
-					ResultCode = Failed,
-					ErrorMessage = "The property-name was not found. Properties are PascalCaseSensitive."
+			var updatedProduct = await _worker.Products.UpdateProductAsync(id, updates);
+
+			if(updatedProduct == null)
+				return new ValidationResult<Product> {
+					ResultCode = NotFound,
+					ErrorMessage = $"Product with id {id} could not be found." 
 				};
+
+			var changes = await _worker.SaveChangesAsync<Product>();
+
+			if(changes.ResultCode.IsSuccessCode())
+			{
+				changes.ResultValue = updatedProduct;
+				return changes;
+			}
+
+			else
+				return changes;
 		}
-
-		var changes = await _worker.SaveChangesAsync();
-
-		return new ValidationResult<Product>
+		catch(SqlException se)
 		{
-			ResultCode = changes > 0 ? Success : Failed,
-			ResultValue = changes > 0 ? updatedProduct : null,
-			ErrorMessage = changes > 0 ? null : "No changes were made"
-		};
+			return await ErrorHelper.RollbackOnSqlServerError<Product>(_worker, se, "updating the Product");
+		}
+		catch(Exception e)
+		{
+			return await ErrorHelper.RollbackOnServerError<Product>(_worker, e);
+		}
 	}
 
-	public async Task<ValidationResultCode> DeleteProductAsync(WebUser? user, int id)
+	public async Task<ValidationResult<int>> DeleteProductAsync(int id)
 	{
-		if(user == null || user.Role != Role.Admin)
-			return Unauthorized;
+		var canWork = await _worker.BeginWork<int>(true);
+		if(canWork.ResultCode != Continue)
+			return canWork;
 
-		var repo = _worker.Products;
-		var success = await repo.DeleteProductAsync(id);
-		if(!success)
-			return NotFound;
+		try
+		{
+			var success = await _worker.Products.DeleteProductAsync(id);
 
-		var changes = await _worker.SaveChangesAsync();
+			if(!success)
+				return new ValidationResult<int> { 
+					ResultCode = NotFound,
+					ErrorMessage = $"Product with id {id} could not be found." 
+				};
 
-		return changes > 0 ? Success : Failed;
+			return await _worker.SaveChangesAsync<int>();
+		}
+		catch(SqlException se)
+		{
+			return await ErrorHelper.RollbackOnSqlServerError<int>(_worker, se, "deleting the Product");
+		}
+		catch(Exception e)
+		{
+			return await ErrorHelper.RollbackOnServerError<int>(_worker, e);
+		}
 	}
 
-	public async Task<ValidationResult<IEnumerable<OrderProduct>>> GetProductOrdersAsync(WebUser? user, int id)
+	public async Task<ValidationResult<IEnumerable<OrderProduct>>> GetProductOrdersAsync(int id)
 	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<IEnumerable<OrderProduct>> { ResultCode = Unauthorized };
+		var canWork = await _worker.BeginWork<IEnumerable<OrderProduct>>(false);
+		if(canWork.ResultCode != Continue)
+			return canWork;
 
-		var repo = _worker.Orders;
-		var orders = await repo.FindOrdersForProductAsync(null, id);
+		var orders = await _worker.Orders.FindOrdersForProductAsync(null, id);
 
 		if(orders == null)
-			return new ValidationResult<IEnumerable<OrderProduct>> { ResultCode = NotFound };
+			return new ValidationResult<IEnumerable<OrderProduct>> { 
+				ResultCode = NotFound,
+				ErrorMessage = $"Product with id {id} could not be found." 
+			}; 
 
-		else if(!orders.Any())
-			return new ValidationResult<IEnumerable<OrderProduct>> { ResultCode = Success };
+		else if(orders.Count() == 0)
+			return new ValidationResult<IEnumerable<OrderProduct>> { 
+				ResultCode = NoContent 
+			};
 
 		else
-		{
-			return new ValidationResult<IEnumerable<OrderProduct>>
-			{
-				ResultCode = Success,
-				ResultValue = orders
+			return new ValidationResult<IEnumerable<OrderProduct>> {
+				ResultCode = OK,
+				ResultValue = orders 
 			};
-		}
 	}
 }

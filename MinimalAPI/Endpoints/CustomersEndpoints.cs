@@ -1,169 +1,151 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MinimalAPI.Auth;
 using MinimalAPI.DTOs;
 using MinimalAPI.DTOs.Requests.Customers;
 using MinimalAPI.DTOs.Responses.Customers;
 using MinimalAPI.DTOs.Responses.Orders;
-using MinimalAPI.Services;
 using MinimalAPI.Services.Customers;
-using static MinimalAPI.Services.ValidationResultCode;
+using System.Net;
+using System.Security.Claims;
 
 namespace MinimalAPI.Endpoints;
 
+using CreateCustomerResponseTask =
+	Task<Results<
+		CreatedAtRoute<CustomerResponse>,
+		JsonHttpResult<string>,
+		StatusCodeHttpResult>>;
+using CustomerResponseTask =
+	Task<Results<
+		Ok<CustomerResponse>,
+		JsonHttpResult<string>,
+		StatusCodeHttpResult>>;
+using DeleteCustomerResponseTask =
+	Task<Results<
+		NoContent,
+		JsonHttpResult<string>,
+		StatusCodeHttpResult>>;
+using GetCustomersResponseTask =
+	Task<Results<
+		Ok<CustomerCollectionResponse>,
+		JsonHttpResult<string>,
+		StatusCodeHttpResult>>;
+using GetOrdersResponseTask =
+	Task<Results<
+		Ok<OrderCollectionResponse>,
+		JsonHttpResult<string>,
+		StatusCodeHttpResult>>;
+
 public static class CustomersEndpoints
 {
-	[HttpGet(Name = "GetCustomers")]
-	//[Authorize(Roles = "Admin")]
-	public static async Task<Results<Ok<CustomersResponse>, UnauthorizedHttpResult, NoContent, BadRequest<string?>, StatusCodeHttpResult>> GetCustomers(ICustomersActionValidationService validation, WebUser? user)
+	// TODO: Add these to all methods since the TypedResult-swagger interactions are broken.
+	[ProducesResponseType((int)HttpStatusCode.NoContent)]
+	[ProducesResponseType((int)HttpStatusCode.Unauthorized)]
+	[ProducesResponseType(typeof(string), (int)HttpStatusCode.ServiceUnavailable)]
+	[ProducesResponseType(typeof(string), (int)HttpStatusCode.InternalServerError)]
+	public static async GetCustomersResponseTask GetCustomers(ICustomersActionValidationService validation)
 	{
-		var result = await validation.GetCustomersAsync(user);
+		var result = await validation.GetCustomersAsync();
 		switch(result.ResultCode)
 		{
-			case Success:
-				if(result.ResultValue == null)
-				{
-					return TypedResults.NoContent();
-				}
+			case HttpStatusCode.OK:
 				return TypedResults.Ok(result.ResultValue!.ToCustomersResponse());
 
-			case Unauthorized:
-				return TypedResults.Unauthorized();
-
-			case Failed:
-				return TypedResults.BadRequest<string?>(result.ErrorMessage);
-
 			default:
-				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+				if(string.IsNullOrEmpty(result.ErrorMessage))
+					return TypedResults.StatusCode((int)result.ResultCode);
+
+				return TypedResults.Json(result.ErrorMessage, statusCode: (int)result.ResultCode);
 		}
 	}
 
-	[HttpPost(Name = "CreateCustomer")]
-	//[Authorize(Roles = "Admin")]
-	public static async Task<Results<CreatedAtRoute<CustomerResponse>, UnauthorizedHttpResult, BadRequest<string?>, StatusCodeHttpResult>> CreateCustomer(ICustomersActionValidationService validation, WebUser? user, [FromBody] CustomerCreateRequest request)
+	public static async CreateCustomerResponseTask CreateCustomer(ICustomersActionValidationService validation, ClaimsPrincipal user, [FromBody] CustomerCreateRequest request)
 	{
 		var customer = request.ToCustomer();
 		var result = await validation.CreateCustomerAsync(user, customer);
 		customer = result.ResultValue;
 		switch(result.ResultCode)
 		{
-			case Success:
+			case HttpStatusCode.OK:
 				return TypedResults.CreatedAtRoute(
 					value: customer!.ToCustomerResponse(),
 					routeName: "GetCustomer",
 					routeValues: new { id = customer!.Id }
-					);
-
-			case Unauthorized:
-				return TypedResults.Unauthorized();
-
-			case Failed:
-				return TypedResults.BadRequest<string?>(result.ErrorMessage);
+				);
 
 			default:
-				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+				if(string.IsNullOrEmpty(result.ErrorMessage))
+					return TypedResults.StatusCode((int)result.ResultCode);
+
+				return TypedResults.Json(result.ErrorMessage, statusCode: (int)result.ResultCode);
 		}
 	}
 
-	[HttpGet("{id}", Name = "GetCustomer")]
-	//[Authorize]
-	public static async Task<Results<Ok<CustomerResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> GetCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async CustomerResponseTask GetCustomer(ICustomersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id)
 	{
 		var result = await validation.GetCustomerAsync(user, id);
 		switch(result.ResultCode)
 		{
-			case Success:
+			case HttpStatusCode.OK:
 				return TypedResults.Ok(result.ResultValue!.ToCustomerResponse());
 
-			case Unauthorized:
-				return TypedResults.Unauthorized();
-
-			case ValidationResultCode.NotFound:
-				return TypedResults.NotFound();
-
-			//case Failed:
-			//	return TypedResults.BadRequest<string?>(result.ErrorMessage);
-
 			default:
-				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+				if(string.IsNullOrEmpty(result.ErrorMessage))
+					return TypedResults.StatusCode((int)result.ResultCode);
+
+				return TypedResults.Json(result.ErrorMessage, statusCode: (int)result.ResultCode);
 		}
 	}
 
-	[HttpPatch("{id}", Name = "UpdateCustomer")]
-	//[Authorize]
-	public static async Task<Results<Ok<CustomerResponse>, UnauthorizedHttpResult, NotFound, BadRequest<string?>, StatusCodeHttpResult>> UpdateCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id, [FromBody] CustomerUpdateRequest request)
+	public static async CustomerResponseTask UpdateCustomer(ICustomersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id, [FromBody] CustomerUpdateRequest request)
 	{
 		var result = await validation.UpdateCustomerAsync(user, id, request);
 
 		switch(result.ResultCode)
 		{
-			case Success:
+			case HttpStatusCode.OK:
 				return TypedResults.Ok(result.ResultValue!.ToCustomerResponse());
 
-			case Unauthorized:
-				return TypedResults.Unauthorized();
-
-			case ValidationResultCode.NotFound:
-				return TypedResults.NotFound();
-
-			case Failed:
-				return TypedResults.BadRequest<string?>(result.ErrorMessage);
-
 			default:
-				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+				if(string.IsNullOrEmpty(result.ErrorMessage))
+					return TypedResults.StatusCode((int)result.ResultCode);
+
+				return TypedResults.Json(result.ErrorMessage, statusCode: (int)result.ResultCode);
 		}
 	}
 
-	[HttpDelete("{id}", Name = "DeleteCustomer")]
-	//[Authorize]
-	public static async Task<Results<NoContent, UnauthorizedHttpResult, NotFound, BadRequest, StatusCodeHttpResult>> DeleteCustomer(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async DeleteCustomerResponseTask DeleteCustomer(ICustomersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id)
 	{
-		switch(await validation.DeleteCustomerAsync(user, id))
+		var result = await validation.DeleteCustomerAsync(user, id);
+
+		switch(result.ResultCode)
 		{
-			case Success:
+			case HttpStatusCode.OK:
 				return TypedResults.NoContent();
 
-			case Unauthorized:
-				return TypedResults.Unauthorized();
-
-			case ValidationResultCode.NotFound:
-				return TypedResults.NotFound();
-
-			case Failed:
-				return TypedResults.BadRequest();
-
 			default:
-				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+				if(string.IsNullOrEmpty(result.ErrorMessage))
+					return TypedResults.StatusCode((int)result.ResultCode);
+
+				return TypedResults.Json(result.ErrorMessage, statusCode: (int)result.ResultCode);
 		}
 	}
 
-	[HttpGet("{id}/orders", Name = "GetCustomerOrders")]
-	//[Authorize]
-	public static async Task<Results<NoContent, Ok<OrdersResponse>, UnauthorizedHttpResult, NotFound, /*BadRequest<string?>,*/ StatusCodeHttpResult>> GetOrders(ICustomersActionValidationService validation, WebUser? user, [FromRoute] int id)
+	public static async GetOrdersResponseTask GetOrders(ICustomersActionValidationService validation, ClaimsPrincipal user, [FromRoute] int id)
 	{
 		var result = await validation.GetOrdersAsync(user, id);
 
 		switch(result.ResultCode)
 		{
-			case Success:
-				if(result.ResultValue == null)
-				{
-					return TypedResults.NoContent();
-				}
-				return TypedResults.Ok(result.ResultValue.ToOrdersResponse());
-
-			case Unauthorized:
-				return TypedResults.Unauthorized();
-
-			case ValidationResultCode.NotFound:
-				return TypedResults.NotFound();
-
-			//case Failed:
-			//	return TypedResults.BadRequest<string?>(result.ErrorMessage);
+			case HttpStatusCode.OK:
+				return TypedResults.Ok(result.ResultValue!.ToOrderCollectionResponse());
 
 			default:
-				return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
+				if(string.IsNullOrEmpty(result.ErrorMessage))
+					return TypedResults.StatusCode((int)result.ResultCode);
+
+				return TypedResults.Json(result.ErrorMessage, statusCode: (int)result.ResultCode);
 		}
 	}
 }

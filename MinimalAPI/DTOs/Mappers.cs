@@ -1,12 +1,14 @@
-﻿using MinimalAPI.DataModels;
+﻿using MinimalAPI.Auth;
+using MinimalAPI.DataModels;
 using MinimalAPI.DTOs.Requests.Customers;
+using MinimalAPI.DTOs.Requests.Orders;
 using MinimalAPI.DTOs.Requests.Products;
+using MinimalAPI.DTOs.Responses.Auth;
 using MinimalAPI.DTOs.Responses.Customers;
 using MinimalAPI.DTOs.Responses.Orders;
 using MinimalAPI.DTOs.Responses.Products;
-using System.Reflection.Metadata;
 using System.Linq;
-using MinimalAPI.DTOs.Requests.Orders;
+using System.Reflection.Metadata;
 
 namespace MinimalAPI.DTOs;
 
@@ -28,12 +30,14 @@ public static class ProductMapping
 		};
 	}
 
-	public static ProductsResponse ToProductsResponse(this IEnumerable<Product> products)
+	public static ProductCollectionResponse ToProductsResponse(this IEnumerable<Product> products)
 	{
-		return new ProductsResponse
+		var response = new ProductCollectionResponse();
+		foreach(var item in products)
 		{
-			Products = products.Select(ToProductResponse)
-		};
+			response.Add(item.ToProductResponse());
+		}
+		return response;
 	}
 
 	public static Product ToProduct(this ProductCreateRequest request)
@@ -95,12 +99,14 @@ public static class CustomerMapping
 		};
 	}
 
-	public static CustomersResponse ToCustomersResponse(this IEnumerable<Customer> customers)
+	public static CustomerCollectionResponse ToCustomersResponse(this IEnumerable<Customer> customers)
 	{
-		return new CustomersResponse
+		var response = new CustomerCollectionResponse();
+		foreach(var item in customers)
 		{
-			Customers = customers.Select(ToCustomerResponse)
-		};
+			response.Add(item.ToCustomerResponse());
+		}
+		return response;
 	}
 
 	public static Customer ToCustomer(this CustomerCreateRequest request)
@@ -128,7 +134,7 @@ public static class OrderMapping
 			Id = order.Id,
 			CustomerId = order.CustomerId,
 			Status = order.Status,
-			Products = products.Length == 0 ? null : products
+			Products = products//.Length == 0 ? null : products
 		};
 	}
 	public static OrderResponse ToSlimOrderResponse(this Order order)
@@ -142,12 +148,14 @@ public static class OrderMapping
 		};
 	}
 
-	public static OrdersResponse ToOrdersResponse(this IEnumerable<Order> orders)
+	public static OrderCollectionResponse ToOrderCollectionResponse(this IEnumerable<Order> orders)
 	{
-		return new OrdersResponse
+		var response = new OrderCollectionResponse();
+		foreach(var item in orders)
 		{
-			Orders = orders.Select(ToOrderResponse)
-		};
+			response.Add(item.ToOrderResponse());
+		}
+		return response;
 	}
 
 	public static Order ToOrder(this OrderCreateRequest request)
@@ -189,7 +197,9 @@ public static class OrderMapping
 		//	}
 		//}
 
-		return new OrderProductsChangeResponse { Products = order.ToProductCountArray() };
+		return new OrderProductsChangeResponse { 
+			Products = order.ToProductCountArray() 
+		};
 	}
 
 	private static int[][] ToProductCountArray(this Order order)
@@ -209,3 +219,35 @@ public static class OrderMapping
 	//}
 
 }
+
+public static class UserMapping
+{
+	public static UserCollectionResponse ToUserCollectionResponse(this IEnumerable<WebUser> users)
+	{
+		var response = new UserCollectionResponse();
+		response.AddRange(users);
+		return response;
+	}
+
+	//public static WebUser ToUserResponse(this WebUser user)
+	//{
+	//	return new WebUser {
+	//		Email = user.Email,
+	//		Role = user.Role,
+	//		CustomerId = user.CustomerId,
+	//		Customer = user.Customer
+	//	};
+	//}
+
+	//public static WebUser ToUser(this WebUser response)
+	//{
+	//	return new WebUser
+	//	{
+	//		Email = response.Email,
+	//		Role = response.Role,
+	//		CustomerId = response.CustomerId,
+	//		Customer = response.Customer
+	//	};
+	//}
+}
+

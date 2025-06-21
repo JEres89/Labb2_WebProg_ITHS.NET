@@ -1,152 +1,224 @@
-﻿using MinimalAPI.Auth;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore.Internal;
+using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
-using static MinimalAPI.Services.ValidationResultCode;
+using System.Collections.ObjectModel;
+using System.IdentityModel.Tokens.Jwt;
+using System.Net;
+using System.Security.Claims;
+using static System.Net.HttpStatusCode;
 
 namespace MinimalAPI.Services.Customers;
 
 public class CustomersActionValidationService : ICustomersActionValidationService
 {
+	private static Dictionary<string, string> _customerUniquePropertiesErrors = new()
+	{
+		{ "mail", "That email address is already in use." }
+	};
+
 	private readonly IUnitOfWork _worker;
 	public CustomersActionValidationService(IUnitOfWork worker)
 	{
 		_worker = worker;
 	}
 
-	public async Task<ValidationResult<IEnumerable<Customer>>> GetCustomersAsync(WebUser? user)
+	public async Task<ValidationResult<IEnumerable<Customer>>> GetCustomersAsync()
 	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<IEnumerable<Customer>> { ResultCode = Unauthorized };
+		var canWork = await _worker.BeginWork<IEnumerable<Customer>>(false);
+		if(canWork.ResultCode != Continue)
+			return canWork;
 
-		var repo = _worker.Customers;
-		var customers = await repo.GetCustomersAsync();
+		var customers = await _worker.Customers.GetCustomersAsync();
 
 		if(customers == null)
-		{
-			return new ValidationResult<IEnumerable<Customer>>
-			{
-				ResultCode = Failed,
-				ErrorMessage = "Could not retreive Customers."
+			return new ValidationResult<IEnumerable<Customer>> { 
+				ResultCode = InternalServerError, 
+				ErrorMessage = "Could not retreive Customers." 
 			};
-		}
+
 		else if(customers.Count() == 0)
-		{
-			return new ValidationResult<IEnumerable<Customer>> { ResultCode = Success };
-		}
-		else
-		{
-			return new ValidationResult<IEnumerable<Customer>>
-			{
-				ResultCode = Success,
-				ResultValue = customers
+			return new ValidationResult<IEnumerable<Customer>> { 
+				ResultCode = NoContent 
 			};
-		}
-	}
-	public async Task<ValidationResult<Customer>> CreateCustomerAsync(WebUser? user, Customer customer)
-	{
-		if(user == null || user.Role != Role.Admin)
-			return new ValidationResult<Customer> { ResultCode = Unauthorized };
 
-		var repo = _worker.Customers;
-		var newCustomer = await repo.CreateCustomerAsync(customer);
-		var changes = await _worker.SaveChangesAsync();
-
-		return new ValidationResult<Customer>
-		{
-			ResultCode = changes > 0 ? Success : Failed,
-			ResultValue = newCustomer
-		};
+		else
+			return new ValidationResult<IEnumerable<Customer>> { 
+				ResultCode = OK, 
+				ResultValue = customers 
+			};
 	}
 
-	public async Task<ValidationResult<Customer>> GetCustomerAsync(WebUser? user, int id)
+	public async Task<ValidationResult<Customer>> CreateCustomerAsync(ClaimsPrincipal user, Customer customer)
 	{
-		if(user == null || user.CustomerId != id && user.Role != Role.Admin)
-			return new ValidationResult<Customer> { ResultCode = Unauthorized };
+		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst(JwtRegisteredClaimNames.Email)?.Value == customer.Email))
+			return new ValidationResult<Customer> { 
+				ResultCode = Unauthorized 
+			};
 
-		var repo = _worker.Customers;
-		var customer = await repo.GetCustomerAsync(id);
-
-		return new ValidationResult<Customer>
-		{
-			ResultCode = customer == null ? NotFound : Success,
-			ResultValue = customer
-		};
-	}
-
-
-	public async Task<ValidationResult<Customer>> UpdateCustomerAsync(WebUser? user, int id, Dictionary<string, string> updates)
-	{
-		if(user == null || user.CustomerId != id && user.Role != Role.Admin)
-			return new ValidationResult<Customer> { ResultCode = Unauthorized };
-
-		var repo = _worker.Customers;
-		var customer = await repo.GetCustomerAsync(id);
-
-		if(customer == null)
-			return new ValidationResult<Customer> { ResultCode = NotFound };
-
-		Customer? updatedCustomer = null;
+		var canWork = await _worker.BeginWork<Customer>(true);
+		if(canWork.ResultCode != Continue)
+			return canWork;
 
 		try
 		{
-			updatedCustomer = await repo.UpdateCustomerAsync(id, updates);
-		}
-		catch(InvalidOperationException ex)
-		{
-			_worker.Dispose();
-			if(ex.Message.Contains("could not be found"))
-				return new ValidationResult<Customer>
-				{
-					ResultCode = Failed,
-					ErrorMessage = "The property-name was not found. Properties are PascalCaseSensitive."
-				};
-		}
+			var newCustomer = await _worker.Customers.CreateCustomerAsync(customer);
+			var changes = await _worker.SaveChangesAsync<Customer>();
 
-		var changes = await _worker.SaveChangesAsync();
+			if(changes.ResultCode.IsSuccessCode())
+			{
+				changes.ResultValue = newCustomer;
+				return changes;
+			}
 
-		return new ValidationResult<Customer>
+			else
+				return changes;
+		}
+		catch(SqlException se)
 		{
-			ResultCode = changes > 0 ? Success : Failed,
-			ResultValue = changes > 0 ? updatedCustomer : null,
-			ErrorMessage = changes > 0 ? null : "No changes were made"
+			if(ErrorHelper.DuplicateSqlErrors.Contains(se.Number)) // Unique constraint errors
+				return await ErrorHelper.RollbackOnSqlServerDuplicateError<Customer>(_worker, se, _customerUniquePropertiesErrors);
+			else
+				return await ErrorHelper.RollbackOnSqlServerError<Customer>(_worker, se, "creating the Customer");
+		}
+		catch(Exception e)
+		{
+			return await ErrorHelper.RollbackOnServerError<Customer>(_worker, e);
+		}
+	}
+
+	public async Task<ValidationResult<Customer>> GetCustomerAsync(ClaimsPrincipal user, int id)
+	{
+		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst("CustomerId")?.Value == id.ToString()))
+			return new ValidationResult<Customer> { 
+				ResultCode = Unauthorized 
+			};
+
+		var canWork = await _worker.BeginWork<Customer>(false);
+		if(canWork.ResultCode != Continue)
+			return canWork;
+
+		var repo = _worker.Customers;
+		var customer = await repo.GetCustomerAsync(id);
+
+		return new ValidationResult<Customer> { 
+			ResultCode = customer == null ? NotFound : OK, 
+			ResultValue = customer 
 		};
 	}
 
-	public async Task<ValidationResultCode> DeleteCustomerAsync(WebUser? user, int id)
+	public async Task<ValidationResult<Customer>> UpdateCustomerAsync(ClaimsPrincipal user, int id, Dictionary<string, string> updates)
 	{
-		if(user == null || user.CustomerId != id && user.Role != Role.Admin)
-			return Unauthorized;
+		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst("CustomerId")?.Value == id.ToString()))
+			return new ValidationResult<Customer> { 
+				ResultCode = Unauthorized 
+			};
 
-		var repo = _worker.Customers;
-		var success = await repo.DeleteCustomerAsync(id);
-		if(!success)
-			return NotFound;
+		if(updates == null || updates.Count == 0)
+			return new ValidationResult<Customer> { 
+				ResultCode = BadRequest, 
+				ErrorMessage = "No properties were provided" 
+			};
 
-		var changes = await _worker.SaveChangesAsync();
+		var canWork = await _worker.BeginWork<Customer>(true);
+		if(canWork.ResultCode != Continue)
+			return canWork;
 
-		return changes > 0 ? Success : Failed;
+		try
+		{
+			var updatedCustomer = await _worker.Customers.UpdateCustomerAsync(id, updates);
+
+			if(updatedCustomer == null)
+				return new ValidationResult<Customer> {
+					ResultCode = NotFound,
+					ErrorMessage = $"Customer with id {id} could not be found." 
+				};
+
+			var changes = await _worker.SaveChangesAsync<Customer>();
+
+			if(changes.ResultCode.IsSuccessCode())
+			{
+				changes.ResultValue = updatedCustomer;
+				return changes;
+			}
+
+			else
+				return changes;
+		}
+		catch(SqlException se)
+		{
+			if(ErrorHelper.DuplicateSqlErrors.Contains(se.Number)) // Unique constraint errors
+				return await ErrorHelper.RollbackOnSqlServerDuplicateError<Customer>(_worker, se, _customerUniquePropertiesErrors);
+
+			else
+				return await ErrorHelper.RollbackOnSqlServerError<Customer>(_worker, se, "updating the Customer");
+		}
+		catch(Exception e)
+		{
+			return await ErrorHelper.RollbackOnServerError<Customer>(_worker, e);
+		}
 	}
 
-	public async Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync(WebUser? user, int id)
+	public async Task<ValidationResult<int>> DeleteCustomerAsync(ClaimsPrincipal user, int id)
 	{
-		if(user == null || user.CustomerId != id && user.Role != Role.Admin)
-			return new ValidationResult<IEnumerable<Order>> { ResultCode = Unauthorized };
+		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst("CustomerId")?.Value == id.ToString()))
+			return new ValidationResult<int> { 
+				ResultCode = Unauthorized 
+			};
 
-		var repo = _worker.Orders;
-		var orders = await repo.FindOrdersAsync(o => o.CustomerId == id);
+		var canWork = await _worker.BeginWork<int>(true);
+		if(canWork.ResultCode != Continue)
+			return canWork;
+
+		try
+		{
+			var success = await _worker.Customers.DeleteCustomerAsync(id);
+
+			if(!success)
+				return new ValidationResult<int> {
+					ResultCode = NotFound,
+					ErrorMessage = $"Customer with id {id} could not be found." 
+				};
+
+			return await _worker.SaveChangesAsync<int>();
+		}
+		catch(SqlException se)
+		{
+			return await ErrorHelper.RollbackOnSqlServerError<int>(_worker, se, "deleting the Customer");
+		}
+		catch(Exception e)
+		{
+			return await ErrorHelper.RollbackOnServerError<int>(_worker, e);
+		}
+	}
+
+	public async Task<ValidationResult<IEnumerable<Order>>> GetOrdersAsync(ClaimsPrincipal user, int id)
+	{
+		if(!(user.IsInRole(Role.Admin.ToString()) || user.FindFirst("CustomerId")?.Value == id.ToString()))
+			return new ValidationResult<IEnumerable<Order>> { 
+				ResultCode = Unauthorized 
+			};
+
+		var canWork = await _worker.BeginWork<IEnumerable<Order>>(false);
+		if(canWork.ResultCode != Continue)
+			return canWork;
+
+		var orders = await _worker.Orders.FindOrdersAsync(o => o.CustomerId == id);
 
 		if(orders == null)
-			return new ValidationResult<IEnumerable<Order>> { ResultCode = NotFound };
+			return new ValidationResult<IEnumerable<Order>> { 
+				ResultCode = NotFound 
+			};
 
-		else if(!orders.Any())
-			return new ValidationResult<IEnumerable<Order>> { ResultCode = Success };
+		else if(orders.Count() == 0)
+			return new ValidationResult<IEnumerable<Order>> { 
+				ResultCode = NoContent 
+			};
 
 		else
-		{
-			return new ValidationResult<IEnumerable<Order>>
-			{
-				ResultCode = Success,
-				ResultValue = orders
+			return new ValidationResult<IEnumerable<Order>> { 
+				ResultCode = OK, 
+				ResultValue = orders 
 			};
-		}
 	}
 }

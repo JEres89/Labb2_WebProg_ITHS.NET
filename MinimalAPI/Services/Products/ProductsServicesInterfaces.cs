@@ -1,5 +1,8 @@
 ﻿using MinimalAPI.Auth;
 using MinimalAPI.DataModels;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
+using System.Security.Claims;
 
 namespace MinimalAPI.Services.Products;
 
@@ -15,9 +18,9 @@ public interface IProductsRepository : IDisposable
 public interface IProductsActionValidationService
 {
 	Task<ValidationResult<IEnumerable<Product>>> GetProductsAsync();
-	Task<ValidationResult<Product>> CreateProductAsync(WebUser? user, Product product);
+	Task<ValidationResult<Product>> CreateProductAsync(Product product);
 	Task<ValidationResult<Product>> GetProductAsync(int id);
-	Task<ValidationResult<Product>> UpdateProductAsync(WebUser? user, int id, Dictionary<string, string> product);
-	Task<ValidationResultCode> DeleteProductAsync(WebUser? user, int id);
-	Task<ValidationResult<IEnumerable<OrderProduct>>> GetProductOrdersAsync(WebUser? user, int id);
+	Task<ValidationResult<Product>> UpdateProductAsync(int id, Dictionary<string, string> product);
+	Task<ValidationResult<int>> DeleteProductAsync(int id);
+	Task<ValidationResult<IEnumerable<OrderProduct>>> GetProductOrdersAsync(int id);
 }

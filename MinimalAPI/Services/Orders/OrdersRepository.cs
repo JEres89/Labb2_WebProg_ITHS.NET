@@ -2,6 +2,7 @@
 using MinimalAPI.DataModels;
 using MinimalAPI.Services.Database;
 using System.Linq.Expressions;
+using System.Runtime.InteropServices;
 
 namespace MinimalAPI.Services.Orders;
 
@@ -18,6 +19,12 @@ public class OrdersRepository : IOrdersRepository
 		return await _context.Orders.ToListAsync();
 	}
 
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <param name="order"></param>
+	/// <param name="products">[n][2] where each row is [productid, count]</param>
+	/// <returns></returns>
 	public async Task<Order> CreateOrderAsync(Order order, IEnumerable<int[]>? products)
 	{
 		if(products != null)
@@ -30,20 +37,33 @@ public class OrdersRepository : IOrdersRepository
 		_context.Orders.Add(order);
 		return order;
 	}
-	/// <summary>
-	/// 
-	/// </summary>
+
 	/// <param name="withProducts">Specifies whether to include the <see cref="OrderProduct.Product"/> in <see cref="Order.Products"/>.</param>
 	/// <returns></returns>
-	public async Task<Order?> GetOrderAsync(int id, bool withProducts = false)
+	public async Task<Order?> GetOrderAsync(int id, /*int userId = 0,*/ bool withProducts = false)
 	{
-		return withProducts 
+		return withProducts
 			? await _context.Orders
 					.Include(o => o.Products)
 					.ThenInclude(p => p.Product)
 					.FirstOrDefaultAsync(c => c.Id == id)
 
 			: await _context.Orders.FindAsync(id);
+
+		/*if(id == 0 && !withProducts)
+			return await _context.Orders.FindAsync(id);
+
+		IQueryable<Order> query = _context.Orders;
+		if(withProducts)
+		{
+			query = query.Include(o => o.Products)
+				.ThenInclude(p => p.Product);
+		}
+		if(userId != 0)
+		{
+			query = query.Where(o => o.CustomerId == userId);
+		}
+		return await query.FirstOrDefaultAsync(o => o.Id == id);*/
 	}
 
 	public async Task<Order?> UpdateOrderStatusAsync(int id, OrderStatus status)
@@ -56,9 +76,6 @@ public class OrdersRepository : IOrdersRepository
 		order.Status = status;
 
 		return order;
-		//var changes = await _context.SaveChangesAsync();
-
-		//return changes > 0 ? order : null;
 	}
 
 	public async Task<bool> DeleteOrderAsync(int id)
@@ -106,48 +123,52 @@ public class OrdersRepository : IOrdersRepository
 	//	return true;
 	//}
 
+	/// <param name="productChanges">[n][2] where each row is [productid, count]</param>
 	public async Task<Order?> UpdateProductsAsync(int id, IEnumerable<int[]> productChanges)
 	{
-		var order = await _context.Orders.FindAsync(id);
+		var order = await GetOrderAsync(id, true);
 		if(order == null)
 			return null;
 
-		var productPrices = await _context.Products
+		var products = await _context.Products
 			.Where(p => productChanges.Select(pc => pc[0]).Contains(p.Id))
-			.ToDictionaryAsync(p => p.Id, p => p.Price);
+			.ToDictionaryAsync(p => p.Id);
 
-		foreach(var product in productChanges)
+		foreach(var newProdNum in productChanges)
 		{
-			var productOrder = order.Products.FirstOrDefault(p => p.ProductId == product[0]);
-			if(!productPrices.TryGetValue(product[0], out var price))
+			if(!products.TryGetValue(newProdNum[0], out var product))
 			{
-				continue;
+				// If the product is not found, we can either skip it or throw an exception.
+				throw new KeyNotFoundException($"Product with ID {newProdNum[0]} not found.");
 			}
-			if(productOrder != null)
+			var orderProduct = order.Products.FirstOrDefault(p => p.ProductId == newProdNum[0]);
+
+			if(orderProduct != null)
 			{
-				if(product[1] == 0)
+				if(newProdNum[1] == 0)
 				{
-					_context.OrderProducts.Remove(productOrder);
+					_context.OrderProducts.Remove(orderProduct);
 					continue;
 				}
-				productOrder.Count = product[1];
-				productOrder.Price = price;
+				orderProduct.Count = newProdNum[1];
+				orderProduct.Price = product.Price;
 			}
 			else
 			{
-				if(product[1] == 0)
+				if(newProdNum[1] == 0)
 					continue;
 
 				order.Products.Add(new OrderProduct
 				{
 					OrderId = id,
-					ProductId = product[0],
-					Count = product[1],
-					Price = price
+					ProductId = newProdNum[0],
+					Product = product,
+					Count = newProdNum[1],
+					Price = product.Price
 				});
 			}
 		}
-		//await _context.SaveChangesAsync();
+
 		return order;
 	}
 
@@ -156,6 +177,7 @@ public class OrdersRepository : IOrdersRepository
 		var order = await _context.Orders.FindAsync(id);
 		if(order == null)
 			return null;
+
 		order.Products.Clear();
 
 		await foreach(var item in GenerateOrderProductsAsync(id, newProducts))
@@ -165,12 +187,18 @@ public class OrdersRepository : IOrdersRepository
 		return order;
 	}
 
+	/// <param name="productChanges">[n][2] where each row is [productid, count] </param>
 	private async IAsyncEnumerable<OrderProduct> GenerateOrderProductsAsync(int orderId, IEnumerable<int[]> productChanges)
 	{
-		//var orderProducts = new List<OrderProduct>();
+		var productIds = productChanges.Select(pc => pc[0]);
 		var productPrices = await _context.Products
-			.Where(p => productChanges.Select(pc => pc[0]).Contains(p.Id))
+			.Where(p => productIds.Contains(p.Id))
 			.ToDictionaryAsync(p => p.Id, p => p.Price);
+
+		if(productIds.Count() > productPrices.Count)
+		{
+			throw new KeyNotFoundException($"Product with ID {productIds.Except(productPrices.Keys).First()} not found.");
+		}
 
 		foreach(var product in productChanges)
 		{

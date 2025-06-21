@@ -1,0 +1,22 @@
+﻿@using MinimalAPI.Auth
+@using MinimalAPI.DTOs
+
+<div class="@DivClass">
+
+    <span class="d-flex justify-content-between"><b>Email:</b>&nbsp;<i>@User.Email</i></span>
+    <span class="d-flex justify-content-between"><b>Role:</b>&nbsp;<i>@User.Role.ToString()</i></span>
+    <span class="d-flex justify-content-between"><b>Customer ID:</b>&nbsp;<i>@User.CustomerId</i></span>
+    @if(User.Customer != null)
+    {
+        <CustomerComponent Customer="User.Customer.ToCustomerResponse()" DivClass="d-inline-flex flex-column border border-1 border-dark" />
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public string DivClass { get; set; } = "min-w-25 col d-inline-flex flex-column border border-1 border-dark px-2";
+
+	[Parameter]
+	public required WebUser User { get; set; }
+}

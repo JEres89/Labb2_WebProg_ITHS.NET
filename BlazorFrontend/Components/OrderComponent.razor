@@ -1,0 +1,36 @@
+﻿@using MinimalAPI.DTOs.Responses.Orders
+
+<div class="@DivClass">
+	<span class="d-flex justify-content-between"><b>Id:</b>&nbsp;<i>@Order.Id</i></span>
+	<span class="d-flex justify-content-between"><b>Customer id:</b>&nbsp;<i>@Order.CustomerId</i></span>
+	<span class="d-flex justify-content-between"><b>Status:</b>&nbsp;<b>@Order.Status</b></span>
+
+
+    @if (Order.Products is not null && Order.Products.Length > 0)
+    {
+        <div>
+            <b>Products:</b>
+            <ul>
+                @foreach(var product in Order.Products)
+                {
+                    <li>
+                        <i>@product[1]</i> of product with Id <i>@product[0]</i>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+    @* else
+    {
+        <div>No products.</div>
+    } *@
+</div>
+
+@code {
+
+    [Parameter]
+    public string DivClass { get; set; } = "min-w-25 col d-inline-flex flex-column border border-1 border-dark px-2";
+
+	[Parameter]
+	public required OrderResponse Order { get; set; }
+}

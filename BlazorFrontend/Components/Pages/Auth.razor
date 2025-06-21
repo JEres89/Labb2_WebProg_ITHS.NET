@@ -1,0 +1,101 @@
+﻿@using MinimalAPI.DTOs.Requests.Auth
+@using MinimalAPI.DTOs.Responses.Auth
+@using System.Text.Json
+@using MinimalAPI.DataModels
+
+@page "/auth"
+
+@inject BlazorFrontend.Services.AuthService AuthService
+
+<h3>AuthService Demo</h3>
+<div class="d-grid">
+    <textarea class="sticky-lg-top" rows="5" cols="60" readonly>@resultMessage</textarea>
+
+    <!-- LoginAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+@{
+#if DEBUG
+}
+            <div>
+                Admin for debug = admin@example.com : adminpassword <br/>
+                User for debug = user1@example.com : password1
+            </div>
+@{
+#endif
+}
+            <label>
+                * <input type="text" @bind="loginEmail" placeholder="Email" />
+            </label>
+            <label>
+                * <input type="password" @bind="loginPassword" placeholder="Password" />
+            </label>
+            ( * required )
+            <button @onclick="LoginAsync" disabled="@loginInvalid">Login</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            <textarea rows="1" cols="60" readonly>@loginResult</textarea>
+        </div>
+    </div>
+
+    <!-- GetUsersAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col">
+            <button @onclick="GetUsersAsync">Get Users</button>
+		</div>
+		<div class="col-10 overflow-scroll" style="flex-wrap: nowrap; display: flex;">
+            @if(usersCollection != null)
+            {
+                foreach(var user in usersCollection)
+                {
+                    <UserComponent User="user" />
+                }
+            }
+        </div>
+    </div>
+
+    <!-- GetUserAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="text" @bind="getUserEmail" placeholder="User Email" />
+            <button @onclick="GetUserAsync" disabled="@getUserInvalid">Get User</button>
+        </div>
+        <div class="col-1" />
+        @if(userResult != null)
+        {
+            <UserComponent User="userResult" DivClass="col d-inline-flex flex-column border border-1 border-dark" />
+        }
+    </div>
+
+    <!-- RegisterAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <label>
+                * <input type="text" @bind="email" placeholder="Email" />
+            </label>
+            <label>
+                * <input type="password" @bind="password" placeholder="Password" />
+            </label>
+            ( * required )
+            <button @onclick="RegisterAsync" disabled="@registerInvalid">Register</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            <textarea rows="1" cols="60" readonly>@registerResult</textarea>
+        </div>
+    </div>
+
+    <!-- DeleteUserAsync -->
+    <div class="function-row border border-2 border-dark">
+        <div class="col flex-column d-flex">
+            <input type="email" @bind="deleteUserEmail" placeholder="User Email" />
+            <button @onclick="DeleteUserAsync" disabled="@deleteUserValid">Delete User</button>
+        </div>
+        <div class="col-1" />
+        <div class="col d-inline-flex flex-column border border-1 border-dark">
+            <textarea rows="1" cols="60" readonly>@deleteUserResult</textarea>
+        </div>
+    </div>
+
+</div>

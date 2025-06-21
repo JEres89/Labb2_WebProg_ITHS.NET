@@ -1,13 +1,17 @@
-﻿using MinimalAPI.DataModels;
+﻿using Microsoft.EntityFrameworkCore;
+using MinimalAPI.DataModels;
+using System.Text.Json.Serialization;
 
 namespace MinimalAPI.Auth;
 
+[PrimaryKey(nameof(Email))]
 public class WebUser
 {
-	public required string UserName { get; set; }
-
+	public required string Email { get; set; }
+	[JsonIgnore]
+	public string? PasswordHash { get; set; }
 	public Role Role { get; set; }
-	public int CustomerId { get; set; } = -1;
+	public int? CustomerId { get; set; }
 	public Customer? Customer { get; set; }
 }
 

@@ -1,0 +1,12 @@
+﻿@using MinimalAPI.DTOs.Responses.Products
+
+<span>Order id: <i>@Product.OrderId</i></span>
+<span>Count: <i>@Product.Count</i></span>
+<b>@Product.Price kr</b>
+<span>Location: <b>@Product.Path</b></span>
+
+@code {
+
+	[Parameter]
+	public required ProductOrderResponse Product { get; set; }
+}
